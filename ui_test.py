@@ -70,7 +70,7 @@ class App:
         self.pieces_black.append(Piece("king", (4, 7), "black"))
         self.pieces_white.append(Piece("king", (4, 0)))
 
-        self.pieces_white[0].coups_possibles = [(0,2), (2,2)]
+        self.pieces_white[0].possible_moves = [(0,2), (2,2)]
 
     def draw(self):
         pyxel.cls(0)
@@ -152,8 +152,8 @@ class App:
             for y in range(8):
                 if self.selected_piece == (x, y):
                     pyxel.rectb(x * 16 + 48, y * 16 + 32, 16, 16, pyxel.COLOR_DARK_BLUE)
-                    # utilisation de piece.coups_possibles pour afficher les coups possibles
-                    for move in self.find_piece_at(x, y).coups_possibles:
+                    # utilisation de piece.possible_moves pour afficher les coups possibles
+                    for move in self.find_piece_at(x, y).possible_moves:
                         mx, my = move
                         pyxel.rectb(x * 16 + 48, my * 16 + 32, 16, 16, pyxel.COLOR_LIGHT_BLUE)
 
