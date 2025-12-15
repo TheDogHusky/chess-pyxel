@@ -55,7 +55,6 @@ class App:
 
     # cette fonction sert à initialiser les différentes variables du jeu qui prendraient trop de place visuellement dans le __init__
     def init_game(self):
-        # on crée les pions selon les règles de l'échec
         for i in range(0, 2):
             self.pieces_white.append(Piece("knight", (1 + i * 5, 0)))
             self.pieces_black.append(Piece("knight", (1 + i * 5, 7), "black"))
@@ -71,9 +70,7 @@ class App:
         self.pieces_black.append(Piece("king", (4, 7), "black"))
         self.pieces_white.append(Piece("king", (4, 0)))
 
-        # PLACEHOLDER test des moves possibles
         self.pieces_white[0].possible_moves = [(0,2), (2,2)]
-        self.pieces_white[2].alive = False
 
     def draw(self):
         pyxel.cls(0)
@@ -116,6 +113,7 @@ class App:
             elif self.hover == "menu_1":
                 print("RECOMMENCER")
                 self.player_turn = 1 - self.player_turn
+                print(self.player_turn)
             elif self.hover == "menu_2":
                 pyxel.quit()
             elif self.hover == "" and self.menu_opened:
@@ -158,64 +156,15 @@ class App:
                     # utilisation de piece.possible_moves pour afficher les coups possibles
                     for move in self.find_piece_at(x, y).possible_moves:
                         mx, my = move
-                        pyxel.rectb(mx * 16 + 48, my * 16 + 32, 16, 16, pyxel.COLOR_LIGHT_BLUE)
+                        pyxel.rectb(x * 16 + 48, my * 16 + 32, 16, 16, pyxel.COLOR_LIGHT_BLUE)
 
     def draw_pieces(self):
         pieces = self.pieces_white + self.pieces_black
         for piece in pieces:
             if piece.alive:
                 self.draw_piece(piece)
-        
-        self.draw_dead_pieces()
     
-    def draw_dead_pieces(self):
-        pieces = self.pieces_white + self.pieces_black
-        pieces_dead = [piece for piece in pieces if not piece.alive]
-
-        pieces_by_type = self.filter_by_type(pieces_dead)
-
-        for key in pieces_by_type[0].keys(): # noirs
-            if pieces_by_type[0][key]:
-                coords = self.get_dead_coordinates("black", key)
-                texture_coords = self.get_ui_texture_coordinates(Piece(key, (0,0), "black"))
-
-                pyxel.blt(coords[0] * 16 + 48, coords[1] * 16 + 32, 0, texture_coords[0], texture_coords[1], 16, 16, 0)
-        
-        for key in pieces_by_type[1].keys(): # blanc
-            if pieces_by_type[1][key]:
-                coords = self.get_dead_coordinates("white", key)
-                texture_coords = self.get_ui_texture_coordinates(Piece(key, (0,0), "white"))
-
-                pyxel.blt(coords[0] * 16 + 48, coords[1] * 16 + 32, 0, texture_coords[0], texture_coords[1], 16, 16, 0)
-
-    def filter_by_type(self, pieces):
-        val = {
-            "pawn": 0,
-            "rook": 0,
-            "knight": 0,
-            "bishop": 0,
-            "queen": 0,
-            "king": 0
-        }
-
-        val_white = {
-            "pawn": 0,
-            "rook": 0,
-            "knight": 0,
-            "bishop": 0,
-            "queen": 0,
-            "king": 0
-        }
-
-        for piece in pieces:
-            if piece.color == "black":
-                val[piece.type] += 1
-            else:
-                val_white[piece.type] += 1
-        
-        return [val, val_white]
-
-    def get_ui_texture_coordinates(self, piece):
+    def draw_piece(self, piece):
         coords_white = {
             "pawn": (64, 80),
             "rook": (64, 48),
@@ -240,34 +189,7 @@ class App:
         else:
             sx, sy = coords_black[piece.type]
 
-        return [sx, sy]
-    
-    def draw_piece(self, piece):
-        coords = self.get_ui_texture_coordinates(piece)
-        sx, sy = coords[0], coords[1]
-
         pyxel.blt(piece.x * 16 + 48, piece.y * 16 + 32, 0, sx, sy, 16, 16, 0)
-
-    def get_dead_coordinates(self, color, type):
-        coords_white = {
-            "pawn": (64, 0),
-            "rook": (80, 0),
-            "knight": (96, 0),
-            "bishop": (112, 0),
-            "queen": (128, 0),
-            "king": (144, 0)
-        }
-
-        coords_black = {
-            "pawn": (64, 192),
-            "rook": (80, 192),
-            "knight": (96, 192),
-            "bishop": (112, 192),
-            "queen": (128, 192),
-            "king": (144, 192)
-        }
-
-        return coords_black[type] if color == "black" else coords_white[type]
 
     def draw_ui(self):
         if self.menu_opened and self.hover not in ["menu_1", "menu_2"]:
@@ -310,6 +232,54 @@ class App:
             pyxel.text(5, 38, "Quitter", pyxel.COLOR_BLACK) # Position pour que le texte soit centré dans le bouton
         pyxel.text(210, 5, "J 1", pyxel.COLOR_WHITE)
         pyxel.text(210, 182, "J 2", pyxel.COLOR_WHITE)
+
+
+    def castling(self): # Roque - permet au roi de se déplacer de 2 cases avec une tour
+        # Vérifier le tour du joueur actuel
+        if self.player_turn == 0:
+            # Roque pour les blancs (joueur 1)
+            # Récupérer le roi blanc et les tours blanches
+            king = self.find_piece_at(4, 0)
+            left_rook = self.find_piece_at(0, 0)  # Tour de gauche (case a1)
+            right_rook = self.find_piece_at(7, 0)  # Tour de droite (case h1)
+            
+            # Vérifier que le roi et les tours sont présents et à leur position initiale
+            if king and king.type == "king" and left_rook and left_rook.type == "rook" and right_rook and right_rook.type == "rook":
+                # Vérifier si le roi blanc est sélectionné
+                if self.selected_piece == (4, 0):
+                    # TODO: Implémenter la logique du roque blanc
+                    # - Vérifier que le roi n'est pas en échec
+                    # - Vérifier que les cases entre le roi et la tour sont vides
+                    # - Déplacer le roi et la tour
+                    # Roque possible pour les blancs
+                    pass
+        else:
+            # Roque pour les noirs (joueur 2)
+            # Récupérer le roi noir et les tours noires
+            king = self.find_piece_at(4, 7)
+            left_rook = self.find_piece_at(0, 7)  # Tour de gauche (case a8)
+            right_rook = self.find_piece_at(7, 7)  # Tour de droite (case h8)
+            
+            # Vérifier que le roi et les tours sont présents et à leur position initiale
+            if king and king.type == "king" and left_rook and left_rook.type == "rook" and right_rook and right_rook.type == "rook":
+                # Vérifier si le roi noir est sélectionné
+                if self.selected_piece == (4, 7):
+                    # TODO: Implémenter la logique du roque noir
+                    # - Vérifier que le roi n'est pas en échec
+                    # - Vérifier que les cases entre le roi et la tour sont vides
+                    # - Déplacer le roi et la tour
+                    # Roque possible pour les noirs
+                    pass
+            
+
+
+#     def __init__(self, type, coords=(0,0), color="white"):
+#         self.type = type # le type de pion: "knight", "rook", "pawn", etc..
+#         self.x = coords[0] # coordonnée x en numéro de case
+#         self.y = coords[1] # y en numéro de case
+#         self.alive = True # est vivant ou morte
+#         self.possible_moves = [] # les coups possibles ex: [(0,1),(5,2)] 
+#         self.color = color # ou "black", la couleur de la pièce
 
 
 
