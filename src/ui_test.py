@@ -1,3 +1,9 @@
+# title: Pyxel-Chess
+# author: Adam Billard, Owen Fouillet, Thomas
+# desc: A pyxel chess game, made for the NSI project of the Simone Veil high school
+# site: https://github.com/TheDogHusky/chess-pyxel
+# version: 0.1
+
 # Créé par abillard2, le 02/12/2025 en Python 3.7
 
 # coordonnées bouton menu : (0,0) -> (16,16)
@@ -13,7 +19,6 @@
 # menu ouvert normal: pyxel.blt(0, 17, 0, 0, 16, 64, 32)
 # menu option 1 hover: pyxel.blt(0, 17, 0, 0, 48, 64, 32)
 # menu option 2 hover: pyxel.blt(0, 17, 0, 0, 80, 64, 32)
-
 
 from time import sleep
 import pyxel
@@ -33,7 +38,7 @@ class Piece:
 class App:
     def __init__(self):
         # initialisation de la fenêtre pyxel. NE PAS CHANGER LES VALEURS!
-        pyxel.init(224, 192)
+        pyxel.init(224, 192, title="Pyxel-Chess",fps=60)
 
         # On charge les éléments de l'interface
         self.ui = pyxel.load("chess.pyxres")
@@ -41,6 +46,7 @@ class App:
         self.player_turn = 0 # 0 = joueur 1, 1 = joueur 2 -> le tour du joueur
         self.menu_opened = False # le menu est-il ouvert?
         self.selected_piece = None # quelle pièce est sélectionnée
+        self.waiting_promotion = None # Instance de Piece
 
         # on montre la sourit, initialise le jeu et le lance!
         pyxel.mouse(True)
@@ -74,6 +80,7 @@ class App:
 
         # PLACEHOLDER test des moves possibles
         self.pieces_white[0].possible_moves = [(0,2), (2,2)]
+        self.waiting_promotion = self.pieces_black[0]
 
     # Sert à dessiner les graphismes
     def draw(self):
@@ -83,6 +90,7 @@ class App:
         self.draw_pieces()
         self.draw_ui()
         self.draw_dead_pieces()
+        self.draw_promotion_interface()
 
     # Fonction utilisée lors de chaque tour afin de gérer la mise en place du prochain tour
     def next_turn():
@@ -111,6 +119,20 @@ class App:
                 self.hover = "" # on a pas la souris sur le menu
         elif 48 <= pyxel.mouse_x <= 176 and 32 <= pyxel.mouse_y <= 160: # si on a la souris sur le plateau
             self.hover = "board-" + str((pyxel.mouse_x - 48) // 16) + "-" + str((pyxel.mouse_y - 32) // 16) # on met self.hover au format "board-<case-y>-<case-z>"
+        elif self.waiting_promotion: # si on a une promotion en attente, on check si la souris est sur une des options
+            piece = self.waiting_promotion
+            where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "white" else (piece.x * 16 + 48, piece.y * 16 + 48)
+            
+            if where[0] <= pyxel.mouse_x <= where[0] + 16 and where[1] <= pyxel.mouse_y <= where[1] + 16:
+                self.hover = "promote_queen"
+            elif where[0] + 16 <= pyxel.mouse_x <= where[0] + 32 and where[1] <= pyxel.mouse_y <= where[1] + 16:
+                self.hover = "promote_bishop"
+            elif where[0] + 32 <= pyxel.mouse_x <= where[0] + 48 and where[1] <= pyxel.mouse_y <= where[1] + 16:
+                self.hover = "promote_rook"
+            elif where[0] + 48 <= pyxel.mouse_x <= where[0] + 64 and where[1] <= pyxel.mouse_y <= where[1] + 16:
+                self.hover = "promote_knight"
+            else:
+                self.hover = ""
         else:
             self.hover = "" # la souris n'est sur rien!
 
@@ -119,6 +141,7 @@ class App:
         self.player_turn = 0
         self.init_game()
         self.selected_piece = None
+        self.waiting_promotion = None
 
     # utilisé pour mettre à jour sur quoi on a cliqué
     def update_clicks(self):
@@ -143,16 +166,48 @@ class App:
                 x = int(x)
                 y = int(y)
                 self.handle_board_click(x, y)
+            elif "promote" in self.hover:
+                _, piece_type = self.hover.split("_") # on récupère le type de pièce sur laquelle on a cliqué
+                self.handle_promotion_click(piece_type)
+
+    def handle_promotion_click(self, piece_type):
+        if self.waiting_promotion:
+            # on récupère l'index de la pièce en promotion dans la liste des pièces
+            piece = self.waiting_promotion
+            pieces_list = self.pieces_white if piece.color == "white" else self.pieces_black
+            index = pieces_list.index(piece)
+
+            if piece.color == "white":
+                del self.pieces_white[index]
+                self.pieces_white.insert(index, Piece(piece_type, (piece.x, piece.y), "white")) 
+            else: 
+                del self.pieces_black[index]
+                self.pieces_black.insert(index, Piece(piece_type, (piece.x, piece.y), "black"))
+            # on remplace la pièce par une autre de type piece_type
+            self.waiting_promotion = None
 
     def handle_board_click(self, x, y):
         # gère ici le fait de faire bouger une pièce
         # en gros tu check si le mec clique dans une case où le pion peut bouger (coord in piece.possible_moves truc du genre) et si oui tu changes les coordonnées du pion et execute self.next_turn()
         # la mort des pions est gérée par la fonction piece.update() de thomas!
         piece = self.find_piece_at(x, y) # on chope la pièce aux coordonnées
-        if piece: # si on a une pièce sur la case
-            # On vérifie que c'est une pièce du joueur qui joue
-            if (self.player_turn == 0 and piece in self.pieces_white) or (self.player_turn == 1 and piece in self.pieces_black):
-                self.selected_piece = (x, y) # si c'est le cas, alors on la sélectionne
+        if piece: # si y'a une pièce
+            if (self.player_turn == 0 and piece in self.pieces_white) or (self.player_turn == 1 and piece in self.pieces_black): # si c'est le tour du joueur de la pièce
+                self.selected_piece = (x, y) # on sélectionne la pièce
+                if (x,y) in piece.possible_moves: # vérifie si la pièce peut aller à cet endroit
+                    self.check_rules() # vérifie si on fait un roque
+                    piece.bouger(x,y) # on déplace la pièce
+                    pieces_total = self.pieces_black + self.pieces_white
+                    for piece_to_update in pieces_total:
+                        piece_to_update.update(pieces_total)
+                    self.selected_piece = None # on déselectionne la pièce
+                    self.player_turn = 1 - self.player_turn # on change de joueur
+
+    def check_rules(self):
+        #self.castling()
+        #self.en_passant()
+        self.promotion()
+        # à implémenter: le reste des règles
 
     # permet de récupérer une instance de la classe pièce dans App avec les coordonnées sur le plateau
     def find_piece_at(self, x, y):
@@ -346,4 +401,123 @@ class App:
         pyxel.text(210, 5, "J 1", pyxel.COLOR_WHITE)
         pyxel.text(210, 182, "J 2", pyxel.COLOR_WHITE)
 
+    def castling(self):
+        # Vérifier le tour du joueur actuel
+        if self.player_turn == 0: # Roque pour les blancs (joueur 1)
+            # Récupérer le roi blanc et les tours blanches
+            king = self.find_piece_at(4, 0)
+            left_rook = self.find_piece_at(0, 0)  # Tour de gauche (case a1)
+            right_rook = self.find_piece_at(7, 0)  # Tour de droite (case h1)4
+            if king and king.type == "king" and left_rook and left_rook.type == "rook" and right_rook and right_rook.type == "rook": # Vérifier que le roi et les tours sont présents et à leur position initiale
+                if self.selected_piece == (4, 0): # Vérifier si le roi blanc est sélectionné
+                    if not self.find_piece_at(1, 0) and not self.find_piece_at(2, 0) and not self.find_piece_at(3, 0): # Roque côté dame
+                        if left_rook.has_moved == False and king.has_moved == False:
+                            left_rook.bouger(3, 0) # tour se déplace à côté du roi
+                            king.bouger(2, 0) # roi se déplace
+                    if not self.find_piece_at(5, 0) and not self.find_piece_at(6, 0): # Roque côté roi
+                        if right_rook.has_moved == False and king.has_moved == False:
+                            right_rook.bouger(5, 0) # tour se déplace à côté du roi
+                            king.bouger(6, 0) # roi se déplace
+        else: # Roque pour les noirs (joueur 2)
+            # Récupérer le roi noir et les tours noires
+            king = self.find_piece_at(4, 7)
+            left_rook = self.find_piece_at(0, 7)  # Tour de gauche (case a8)
+            right_rook = self.find_piece_at(7, 7)  # Tour de droite (case h8)
+            if king and king.type == "king" and left_rook and left_rook.type == "rook" and right_rook and right_rook.type == "rook": # Vérifier que le roi et les tours sont présents et à leur position initiale
+                if self.selected_piece == (4, 7): # Vérifier si le roi noir est sélectionné
+                    if not self.find_piece_at(1, 7) and not self.find_piece_at(2, 7) and not self.find_piece_at(3, 7): # Roque côté dame
+                        if left_rook.has_moved == False and king.has_moved == False:
+                            left_rook.bouger(3, 7) # tour se déplace à côté du roi
+                            king.bouger(2, 7) # roi se déplace
+                    if not self.find_piece_at(5, 7) and not self.find_piece_at(6, 7): # Roque côté roi
+                        if right_rook.has_moved == False and king.has_moved == False:
+                            right_rook.bouger(5, 7) # tour se déplace à côté du roi
+                            king.bouger(6, 7) # roi se déplace
+
+    def en_passant(self):
+        """
+        Effectue une prise en passant au échecs.
+        La prise en passant est une règle spéciale du jeu d'échecs qui permet à un pion
+        de capturer un pion adverse dans des circonstances particulières:
+        1. Un pion adverse vient de se déplacer de deux cases en avant depuis sa position
+            initiale et s'arrête à côté de votre pion.
+        2. Votre pion peut alors capturer le pion adverse comme s'il n'avait avancé que
+            d'une seule case.
+        3. Cette capture doit être effectuée immédiatement, sinon elle n'est plus possible
+            au coup suivant.
+        4. La prise en passant ne peut être exécutée que par un pion et seulement contre
+            un autre pion.
+        """
+        pass # TODO implémenter la prise en passant
+
+    def draw_promotion_interface(self):
+        piece = self.waiting_promotion
+        if piece:
+            where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, piece.y * 16 + 48) # TODO FIX THIS CAUSE THE COORDINATES ARE INCORRECT SINCE I USED TO PUT THE WHITE PROMOTIONNAL PANEL IN THE WHITE SECTION (MAKE INVERSE)
+
+            pyxel.rect(where[0], where[1], 64, 16, pyxel.COLOR_WHITE)
+            if self.hover == "promote_bishop":
+                pyxel.rect(where[0] + 16, where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
+            elif self.hover == "promote_knight":
+                pyxel.rect(where[0] + 48, where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
+            elif self.hover == "promote_rook":
+                pyxel.rect(where[0] + 32, where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
+            elif self.hover == "promote_queen":
+                pyxel.rect(where[0], where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
+
+            color = "black" if piece.color == "white" else "white"
+
+            coords = self.get_ui_texture_coordinates(Piece("queen", (0,0), color))
+            pyxel.blt(where[0], where[1], 0, coords[0], coords[1], 16, 16, 0)
+            coords = self.get_ui_texture_coordinates(Piece("bishop", (0,0), color))
+            pyxel.blt(where[0] + 16, where[1], 0, coords[0], coords[1], 16, 16, 0)
+            coords = self.get_ui_texture_coordinates(Piece("rook", (0,0), color))
+            pyxel.blt(where[0] + 32, where[1], 0, coords[0], coords[1], 16, 16, 0)
+            coords = self.get_ui_texture_coordinates(Piece("knight", (0,0), color))
+            pyxel.blt(where[0] + 48, where[1], 0, coords[0], coords[1], 16, 16, 0)
+
+
+    def promotion(self):
+        """
+        Gère la promotion des pions aux échecs.
+        La promotion est une règle spéciale qui permet à un pion d'être transformé en
+        une autre pièce (généralement une reine) lorsqu'il atteint la dernière rangée
+        du côté adverse du plateau.
+        1. Lorsqu'un pion atteint la huitième rangée (pour les blancs) ou la première
+            rangée (pour les noirs), il peut être promu.
+        2. Le joueur peut choisir de promouvoir le pion en une reine, une tour, un
+            fou ou un cavalier.
+        3. La pièce choisie remplace immédiatement le pion sur la case où il a été
+            promu.
+        """
+        if self.player_turn == 0: # promotion pour les blancs
+            for piece in self.pieces_white: # on parcourt les pièces blanches
+                if piece.type == "pawn" and piece.y == 7 and piece.alive:
+                    pass# TODO implémenter la promotion des pions
+                        # - faire une interface pour choisir la pièce
+                        # - remplacer le pion par la pièce choisie
+                        # - mettre à jour les listes de pièces ( self.update() )
+        else: # promotion pour les noirs
+            for piece in self.pieces_black: # on parcourt les pièces noires
+                if piece.type == "pawn" and piece.y == 0 and piece.alive:
+                    pass
+
+
+#     def __init__(self, type, coords=(0,0), color="white"):
+#         self.type = type # le type de pion: "knight", "rook", "pawn", etc..
+#         self.x = coords[0] # coordonnée x en numéro de case
+#         self.y = coords[1] # y en numéro de case
+#         self.has_moved = False
+#         self.alive = True # est vivant ou morte
+#         self.possible_moves = [] # les coups possibles ex: [(0,1),(5,2)] 
+#         self.color = color # ou "black", la couleur de la pièce
+
+
 App()
+
+
+
+# ======================= AFK Zone ======================== #
+#                                                           #
+#                                                           #
+# ========================================================= #
