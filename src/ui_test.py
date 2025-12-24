@@ -88,7 +88,7 @@ class App:
         self.draw_promotion_interface()
 
     # Fonction utilisée lors de chaque tour afin de gérer la mise en place du prochain tour
-    def next_turn():
+    def next_turn(self):
         #met la logique d'après chaque tour ici, le for piece in pieces, ...
         pass # à implémenter
     
