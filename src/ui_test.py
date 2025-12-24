@@ -77,10 +77,6 @@ class App:
         self.pieces_black.append(Piece("king", (4, 7), "black"))
         self.pieces_white.append(Piece("king", (4, 0)))
 
-        # PLACEHOLDER test des moves possibles
-        self.pieces_white[0].possible_moves = [(0,2), (2,2)]
-        self.waiting_promotion = self.pieces_black[0]
-
     # Sert à dessiner les graphismes
     def draw(self):
         # On clear le jeu avec comme couleur de fond du noir
