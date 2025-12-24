@@ -20,7 +20,6 @@
 # menu option 1 hover: pyxel.blt(0, 17, 0, 0, 48, 64, 32)
 # menu option 2 hover: pyxel.blt(0, 17, 0, 0, 80, 64, 32)
 
-from time import sleep
 import pyxel
 
 # class piece, représente une pièce (un pion, un knight, etc..)
@@ -44,11 +43,11 @@ class App:
         self.ui = pyxel.load("chess.pyxres")
         self.hover = "" # "menu_close" "menu_open" "menu_1" "menu_2" "board-x-y" -> sur quel élément on passe la souris
         self.player_turn = 0 # 0 = joueur 1, 1 = joueur 2 -> le tour du joueur
-        self.menu_opened = False # le menu est-il ouvert?
-        self.selected_piece = None # quelle pièce est sélectionnée
+        self.menu_opened = False # le menu est-il ouvert ?
+        self.selected_piece = None # quelle pièce est sélectionnée ?
         self.waiting_promotion = None # Instance de Piece
 
-        # on montre la sourit, initialise le jeu et le lance!
+        # on montre la sourit, initialise le jeu et le lance !
         pyxel.mouse(True)
         self.init_game()
         pyxel.run(self.update, self.draw)
@@ -121,7 +120,7 @@ class App:
             self.hover = "board-" + str((pyxel.mouse_x - 48) // 16) + "-" + str((pyxel.mouse_y - 32) // 16) # on met self.hover au format "board-<case-y>-<case-z>"
         elif self.waiting_promotion: # si on a une promotion en attente, on check si la souris est sur une des options
             piece = self.waiting_promotion
-            where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "white" else (piece.x * 16 + 48, piece.y * 16 + 48)
+            where = (piece.x * 16 + 48, (piece.y - 7) * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, (piece.y + 7) * 16 + 48)
             
             if where[0] <= pyxel.mouse_x <= where[0] + 16 and where[1] <= pyxel.mouse_y <= where[1] + 16:
                 self.hover = "promote_queen"
@@ -134,7 +133,7 @@ class App:
             else:
                 self.hover = ""
         else:
-            self.hover = "" # la souris n'est sur rien!
+            self.hover = "" # la souris n'est sur rien !
 
     # utilisé pour le bouton recommencer, on réinitialise tout
     def restart(self):
@@ -146,7 +145,7 @@ class App:
     # utilisé pour mettre à jour sur quoi on a cliqué
     def update_clicks(self):
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT): # seulement clic gauche
-            # Logique: on regarde sur quoi on passait la souris, et on effecture des actions en conséquence
+            # Logique : on regarde sur quoi on passait la souris, et on effecture des actions en conséquence
             if self.hover == "menu_open":
                 self.menu_opened = True
             elif self.hover == "menu_close":
@@ -453,7 +452,7 @@ class App:
     def draw_promotion_interface(self):
         piece = self.waiting_promotion
         if piece:
-            where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, piece.y * 16 + 48) # TODO FIX THIS CAUSE THE COORDINATES ARE INCORRECT SINCE I USED TO PUT THE WHITE PROMOTIONNAL PANEL IN THE WHITE SECTION (MAKE INVERSE)
+            where = (piece.x * 16 + 48, (piece.y - 7) * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, (piece.y + 7) * 16 + 48) # TODO FIX THIS CAUSE THE COORDINATES ARE INCORRECT SINCE I USED TO PUT THE WHITE PROMOTIONNAL PANEL IN THE WHITE SECTION (MAKE INVERSE)
 
             pyxel.rect(where[0], where[1], 64, 16, pyxel.COLOR_WHITE)
             if self.hover == "promote_bishop":
@@ -465,15 +464,13 @@ class App:
             elif self.hover == "promote_queen":
                 pyxel.rect(where[0], where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
 
-            color = "black" if piece.color == "white" else "white"
-
-            coords = self.get_ui_texture_coordinates(Piece("queen", (0,0), color))
+            coords = self.get_ui_texture_coordinates(Piece("queen", (0,0), piece.color))
             pyxel.blt(where[0], where[1], 0, coords[0], coords[1], 16, 16, 0)
-            coords = self.get_ui_texture_coordinates(Piece("bishop", (0,0), color))
+            coords = self.get_ui_texture_coordinates(Piece("bishop", (0,0), piece.color))
             pyxel.blt(where[0] + 16, where[1], 0, coords[0], coords[1], 16, 16, 0)
-            coords = self.get_ui_texture_coordinates(Piece("rook", (0,0), color))
+            coords = self.get_ui_texture_coordinates(Piece("rook", (0,0), piece.color))
             pyxel.blt(where[0] + 32, where[1], 0, coords[0], coords[1], 16, 16, 0)
-            coords = self.get_ui_texture_coordinates(Piece("knight", (0,0), color))
+            coords = self.get_ui_texture_coordinates(Piece("knight", (0,0), piece.color))
             pyxel.blt(where[0] + 48, where[1], 0, coords[0], coords[1], 16, 16, 0)
 
 
@@ -493,14 +490,11 @@ class App:
         if self.player_turn == 0: # promotion pour les blancs
             for piece in self.pieces_white: # on parcourt les pièces blanches
                 if piece.type == "pawn" and piece.y == 7 and piece.alive:
-                    pass# TODO implémenter la promotion des pions
-                        # - faire une interface pour choisir la pièce
-                        # - remplacer le pion par la pièce choisie
-                        # - mettre à jour les listes de pièces ( self.update() )
+                    self.waiting_promotion = piece
         else: # promotion pour les noirs
             for piece in self.pieces_black: # on parcourt les pièces noires
                 if piece.type == "pawn" and piece.y == 0 and piece.alive:
-                    pass
+                    self.waiting_promotion = piece
 
 
 #     def __init__(self, type, coords=(0,0), color="white"):
