@@ -19,7 +19,7 @@ python -m pip install pyxel
 ## Exécution
 
 ```bash
-python ui_test.py
+python src/ui_test.py
 
 ```
 
