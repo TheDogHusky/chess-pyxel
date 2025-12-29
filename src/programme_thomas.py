@@ -96,52 +96,52 @@ class Piece:
                     if self.color == "white": #si le pion est blanc
                         if x-1 == self.x:
                             for element in pieces:
-                                if element[1] == [x,y]:
+                                if element.x == x and element.y == y:
                                     coup_possible = False
-                                elif element[1] == [x+1,y+1]:
+                                elif element.x == x+1 and element.y == y+1:
                                     self.possible_moves.append([x+1,y+1])
-                                elif element[1] == [x+1, y-1]:
+                                elif element.x == x+1 and element.y == y-1:
                                     self.possible_moves.append([x+1,y-1])
-                            if coup_possible == True:
+                            if coup_possible:
                                 self.possible_moves.append([x,y])
                     else: #si le pion est noir
                         if x+1 == self.x:
                             for element in pieces:
-                                if element[1] == [x,y]:
+                                if element.x == x and element.y == y:
                                     coup_possible = False
-                                elif element[1] == [x-1,y+1]:
+                                elif element.x == x-1 and element.y == y+1:
                                     self.possible_moves.append([x-1,y+1])
-                                elif element[1] == [x-1, y-1]:
+                                elif element.x == x-1 and element.y == y-1:
                                     self.possible_moves.append([x-1,y-1])
                             if coup_possible:
                                 self.possible_moves.append([x,y])
                 elif self.type == "rook":
                     if not limites_cree:
-                        #si les limites de déplacement ne sont pas crées, ont les creer pour savoir quelles  pieces limites
+                        #si les limites de déplacement ne sont pas créés, ont les créer pour savoir quelles pieces limites
                         for element in pieces:
-                            if element[1][0] == self.x and limit_mini_y < element[1][1] < self.y:
+                            if element.x == self.x and limit_mini_y < element.y < self.y:
                                 if element.color != self.color:
-                                    limit_mini_y = element[1][1]
+                                    limit_mini_y = element.y
                                 else:
-                                    limit_mini_y = element[1][1] + 1
-                            elif element[1][0] == self.x and element[1][1] > self.y:
+                                    limit_mini_y = element.y + 1
+                            elif element.x == self.x and element.y > self.y:
                                 if element.color != self.color:
-                                    limit_max_y = element[1][1]
+                                    limit_max_y = element.y
                                 else:
-                                    limit_max_y = element[1][1] - 1
-                            elif element [1][1] == self.y and limit_mini_x < element[1][0] < self.x:
+                                    limit_max_y = element.y - 1
+                            elif element.y == self.y and limit_mini_x < element.x < self.x:
                                 if element.color != self.color:
-                                    limit_mini_x = element[1][0]
+                                    limit_mini_x = element.x
                                 else:
-                                    limit_mini_x = element[1][0] + 1
-                            elif element[1][1] == self.y and element[1][0] > self.x:
+                                    limit_mini_x = element.x + 1
+                            elif element.y == self.y and element.x > self.x:
                                 if element.color != self.color:
-                                    limit_mini_x = element[1][1]
+                                    limit_mini_x = element.y
                                 else:
-                                    limit_mini_x = element[1][1] + 1
+                                    limit_mini_x = element.y + 1
                         limites_cree = True
                     """cette partie de la fonction vérifie si la case sélectionnée avec les 2 boucles for est accessible par la tour.
-                    Elle vérifie aussi si, dans le cas où une piece barre la route, elle est dansla meme équipe ou si elle est adversaire auquel cas elle doit être accessible par la tour"""
+                    Elle vérifie aussi si, dans le cas où une piece barre la route, elle est dans la meme équipe ou si elle est adversaire auquel cas elle doit être accessible par la tour"""
                     if x == self.x and limit_mini_y <= y <= limit_max_y:
                         self.possible_moves.append([x,y])
                     elif y == self.y and limit_mini_x <= x <= limit_max_x:
@@ -183,34 +183,34 @@ class Piece:
                         
                         limites_cree = True
                         for element in pieces:
-                            if element[1][0] < self.x and element[1][1] < self.y:
-                                if self.x - element[1][0] > moins_moins and self.y - element[1][1] > moins_moins:
-                                    if self.x - element[1][0] == self.y - element[1][1]:
+                            if element.x < self.x and element.y < self.y:
+                                if self.x - element.x > moins_moins and self.y - element.y > moins_moins:
+                                    if self.x - element.x == self.y - element.y:
                                         if self.color != element.color:
-                                            moins_moins = self.x - element[1][0]
+                                            moins_moins = self.x - element.x
                                         else:
-                                            moins_moins = self.x - element[1][0] + 1
-                            elif element[1][0] > self.x and element[1][1] > self.y:
-                                if self.x - element[1][0] < plus_plus and self.y - element[1][1] < plus_plus:
-                                    if self.x - element[1][0] == self.y - element[1][1]:
+                                            moins_moins = self.x - element.x + 1
+                            elif element.x > self.x and element.y > self.y:
+                                if self.x - element.x < plus_plus and self.y - element.y < plus_plus:
+                                    if self.x - element.x == self.y - element.y:
                                         if self.color != element.color:
-                                            plus_plus = self.y - element[1][1]
+                                            plus_plus = self.y - element.y
                                         else:
-                                            plus_plus = self.y - element[1][1] - 1
-                            elif element[1][0] > self.x and element[1][1] < self.y:
-                                if self.x - element[1][0] < plus_moins and ((self.y - element[1][1]) * -1) < plus_moins:
-                                    if self.x - element[1][0] == (self.y*(-1)) - element[1][1] < plus_moins:
+                                            plus_plus = self.y - element.y - 1
+                            elif element.x > self.x and element.y < self.y:
+                                if self.x - element.x < plus_moins and ((self.y - element.y) * -1) < plus_moins:
+                                    if self.x - element.x == (self.y*(-1)) - element.y < plus_moins:
                                         if self.color != element.color:
-                                            plus_moins = self.x - element[1][0]
+                                            plus_moins = self.x - element.x
                                         else:
-                                            plus_moins = self.x - element[1][0] - 1
-                            elif element[1][0] < self.x and element[1][1] > self.y:
-                                if self.x - element[1][0] > moins_plus and self.y - element[1][1] < moins_plus:
-                                    if self.x - element[1][0] == (self.y*(-1)) - element[1][1]:
+                                            plus_moins = self.x - element.x - 1
+                            elif element.x < self.x and element.y > self.y:
+                                if self.x - element.x > moins_plus and self.y - element.y < moins_plus:
+                                    if self.x - element.x == (self.y*(-1)) - element.y:
                                         if self.color != element.color:
-                                            moins_plus = self.x - element[1][0]
+                                            moins_plus = self.x - element.x
                                         else:
-                                            moins_plus = self.x - element[1][0] + 1
+                                            moins_plus = self.x - element.x + 1
                     else:
                         if x - self.x == y - self.y:
                             if x - self.x >= moins_moins and x - self.x <= plus_plus:
@@ -254,54 +254,54 @@ class Piece:
                         plus_moins = limite_calcul
                         
                         for element in pieces:
-                            if element[1][0] == self.x and limit_mini_y < element[1][1] and element[1][1] < self.y:
+                            if element.x == self.x and limit_mini_y < element.y < self.y:
                                 if element.color != self.color:
-                                    limit_mini_y = element[1][1]
+                                    limit_mini_y = element.y
                                 else:
-                                    limit_mini_y = element[1][1] + 1
-                            elif element[1][0] == self.x and element[1][1] > self.y:
+                                    limit_mini_y = element.y + 1
+                            elif element.x == self.x and element.y > self.y:
                                 if element.color != self.color:
-                                    limit_max_y = element[1][1]
+                                    limit_max_y = element.y
                                 else:
-                                    limit_max_y = element[1][1] - 1
-                            elif element [1][1] == self.y and limit_mini_x < element[1][0] and element[1][0] < self.x:
+                                    limit_max_y = element.y - 1
+                            elif element.y == self.y and limit_mini_x < element.x < self.x:
                                 if element.color != self.color:
-                                    limit_mini_x = element[1][0]
+                                    limit_mini_x = element.x
                                 else:
-                                    limit_mini_x = element[1][0] + 1
-                            elif element[1][1] == self.y and element[1][0] > self.x:
+                                    limit_mini_x = element.x + 1
+                            elif element.y == self.y and element.x > self.x:
                                 if element.color != self.color:
-                                    limit_mini_x = element[1][1]
+                                    limit_mini_x = element.y
                                 else:
-                                    limit_mini_x = element[1][1] + 1
-                            elif element[1][0] < self.x and element[1][1] < self.y:
-                                if self.x - element[1][0] > moins_moins and self.y - element[1][1] > moins_moins:
-                                    if self.x - element[1][0] == self.y - element[1][1]:
+                                    limit_mini_x = element.y + 1
+                            elif element.x < self.x and element.y < self.y:
+                                if self.x - element.x > moins_moins and self.y - element.y > moins_moins:
+                                    if self.x - element.x == self.y - element.y:
                                         if self.color != element.color:
-                                            moins_moins = self.x - element[1][0]
+                                            moins_moins = self.x - element.x
                                         else:
-                                            moins_moins = self.x - element[1][0] + 1
-                            elif element[1][0] > self.x and element[1][1] > self.y:
-                                if self.x - element[1][0] < plus_plus and self.y - element[1][1] < plus_plus:
-                                    if self.x - element[1][0] == self.y - element[1][1]:
+                                            moins_moins = self.x - element.x + 1
+                            elif element.x > self.x and element.y > self.y:
+                                if self.x - element.x < plus_plus and self.y - element.y < plus_plus:
+                                    if self.x - element.x == self.y - element.y:
                                         if self.color != element.color:
-                                            plus_plus = self.y - element[1][1]
+                                            plus_plus = self.y - element.y
                                         else:
-                                            plus_plus = self.y - element[1][1] - 1
-                            elif element[1][0] > self.x and element[1][1] < self.y:
-                                if self.x - element[1][0] < plus_moins and ((self.y - element[1][1]) * -1) < plus_moins:
-                                    if self.x - element[1][0] == (self.y*(-1)) - element[1][1] < plus_moins:
+                                            plus_plus = self.y - element.y - 1
+                            elif element.x > self.x and element.y < self.y:
+                                if self.x - element.x < plus_moins and ((self.y - element.y) * -1) < plus_moins:
+                                    if self.x - element.x == (self.y*(-1)) - element.y < plus_moins:
                                         if self.color != element.color:
-                                            plus_moins = self.x - element[1][0]
+                                            plus_moins = self.x - element.x
                                         else:
-                                            plus_moins = self.x - element[1][0] - 1
-                            elif element[1][0] < self.x and element[1][1] > self.y:
-                                if self.x - element[1][0] > moins_plus and self.y - element[1][1] < moins_plus:
-                                    if self.x - element[1][0] == (self.y*(-1)) - element[1][1]:
+                                            plus_moins = self.x - element.x - 1
+                            elif element.x < self.x and element.y > self.y:
+                                if self.x - element.x > moins_plus and self.y - element.y < moins_plus:
+                                    if self.x - element.x == (self.y*(-1)) - element.y:
                                         if self.color != element.color:
-                                            moins_plus = self.x - element[1][0]
+                                            moins_plus = self.x - element.x
                                         else:
-                                            moins_plus = self.x - element[1][0] + 1
+                                            moins_plus = self.x - element.x + 1
                     else:
                         if x - self.x == y - self.y:
                             if moins_moins <= x - self.x <= plus_plus:
@@ -334,7 +334,7 @@ class Piece:
                     for element in pieces:
                         if element.color == self.color:
                             for i in range(len(liste_provisoire)):
-                                if element == liste_provisoire[i]:
+                                if (element.x, element.y) == liste_provisoire[i]:
                                     liste_provisoire.pop(i)
                     self.possible_moves.extend(liste_provisoire) # on ajoute tous les éléments de la liste provisoire à possible_moves d'un coup
                 elif self.type == "king":
@@ -358,7 +358,7 @@ class Piece:
                     for element in pieces:
                         if element.color == self.color:
                             for i in range(len(liste_provisoire)):
-                                if liste_provisoire[i] == element[1]:
+                                if liste_provisoire[i] == (element.x, element.y):
                                     liste_provisoire.pop(i)
                     
                     

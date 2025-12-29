@@ -192,15 +192,17 @@ class App:
         piece = self.find_piece_at(x, y) # on chope la pièce aux coordonnées
         if piece: # si y'a une pièce
             if (self.player_turn == 0 and piece in self.pieces_white) or (self.player_turn == 1 and piece in self.pieces_black): # si c'est le tour du joueur de la pièce
-                self.selected_piece = (x, y) # on sélectionne la pièce
-                if (x,y) in piece.possible_moves: # vérifie si la pièce peut aller à cet endroit
-                    self.check_rules() # vérifie si on fait un roque
-                    piece.bouger(x,y) # on déplace la pièce
-                    pieces_total = self.pieces_black + self.pieces_white
-                    for piece_to_update in pieces_total:
-                        piece_to_update.update(pieces_total)
-                    self.selected_piece = None # on déselectionne la pièce
-                    self.player_turn = 1 - self.player_turn # on change de joueur
+                self.selected_piece = [x, y] # on sélectionne la pièce
+        elif self.selected_piece:
+            if [x, y] in self.find_piece_at(self.selected_piece[0], self.selected_piece[1]).possible_moves: # vérifie si la pièce peut aller à cet endroit
+                self.check_rules() # vérifie si on fait un roque
+                piece = self.find_piece_at(self.selected_piece[0], self.selected_piece[1]) # on récupère la pièce sélectionnée
+                piece.bouger(x,y) # on déplace la pièce
+                pieces_total = self.pieces_black + self.pieces_white
+                for piece_to_update in pieces_total:
+                    piece_to_update.update(pieces_total)
+                self.selected_piece = None # on désélectionne la pièce
+                self.player_turn = 1 - self.player_turn # on change de joueur
 
     def check_rules(self):
         self.castling()
