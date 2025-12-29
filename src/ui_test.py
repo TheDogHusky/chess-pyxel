@@ -21,17 +21,18 @@
 # menu option 2 hover: pyxel.blt(0, 17, 0, 0, 80, 64, 32)
 
 import pyxel
+from programme_thomas import Piece
 
 # class piece, représente une pièce (un pion, un knight, etc..)
-class Piece:
-    def __init__(self, type, coords=(0,0), color="white"):
-        self.type = type # le type de pion: "knight", "rook", "pawn", etc..
-        self.x = coords[0] # coordonnée x en numéro de case
-        self.y = coords[1] # y en numéro de case
-        self.has_moved = False
-        self.alive = True # est vivant ou morte
-        self.possible_moves = [] # les coups possibles ex: [(0,1),(5,2)] 
-        self.color = color # ou "black", la couleur de la pièce
+# class Piece:
+#     def __init__(self, type, coords=(0,0), color="white"):
+#         self.type = type # le type de pion: "knight", "rook", "pawn", etc..
+#         self.x = coords[0] # coordonnée x en numéro de case
+#         self.y = coords[1] # y en numéro de case
+#         self.has_moved = False
+#         self.alive = True # est vivant ou morte
+#         self.possible_moves = [] # les coups possibles ex: [(0,1),(5,2)]
+#         self.color = color # ou "black", la couleur de la pièce
 
 
 class App:
@@ -76,6 +77,9 @@ class App:
         self.pieces_white.append(Piece("queen", (3, 0)))
         self.pieces_black.append(Piece("king", (4, 7), "black"))
         self.pieces_white.append(Piece("king", (4, 0)))
+
+        for piece in self.pieces_black + self.pieces_white:
+            piece.update(self.pieces_black + self.pieces_white)
 
     # Sert à dessiner les graphismes
     def draw(self):
@@ -199,8 +203,8 @@ class App:
                     self.player_turn = 1 - self.player_turn # on change de joueur
 
     def check_rules(self):
-        #self.castling()
-        #self.en_passant()
+        self.castling()
+        self.en_passant()
         self.promotion()
         # à implémenter: le reste des règles
 
@@ -352,12 +356,12 @@ class App:
 
     # Permet de dessiner l'interface utilisateur (ui)
     def draw_ui(self):
-        # --------------------------
+        # ---------------------------
         #    Les menus et boutons
-        # --------------------------
+        # ---------------------------
         if self.hover == "menu_open": # si on a la souris sur le bouton "ouvrir le menu"
             pyxel.blt(0, 0, 0, 16, 0, 16, 16)
-        else: # sinon on dessine le bouton menu normal
+        else: # sinon, on dessine le bouton menu normal
             pyxel.blt(0, 0, 0, 0, 0, 16, 16)
 
         if self.menu_opened:
@@ -491,16 +495,6 @@ class App:
             for piece in self.pieces_black: # on parcourt les pièces noires
                 if piece.type == "pawn" and piece.y == 0 and piece.alive:
                     self.waiting_promotion = piece
-
-
-#     def __init__(self, type, coords=(0,0), color="white"):
-#         self.type = type # le type de pion: "knight", "rook", "pawn", etc..
-#         self.x = coords[0] # coordonnée x en numéro de case
-#         self.y = coords[1] # y en numéro de case
-#         self.has_moved = False
-#         self.alive = True # est vivant ou morte
-#         self.possible_moves = [] # les coups possibles ex: [(0,1),(5,2)] 
-#         self.color = color # ou "black", la couleur de la pièce
 
 
 App()
