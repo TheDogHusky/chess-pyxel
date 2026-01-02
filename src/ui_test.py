@@ -120,7 +120,7 @@ class App:
             self.hover = "board-" + str((pyxel.mouse_x - 48) // 16) + "-" + str((pyxel.mouse_y - 32) // 16) # on met self.hover au format "board-<case-y>-<case-z>"
         elif self.waiting_promotion: # si on a une promotion en attente, on check si la souris est sur une des options
             piece = self.waiting_promotion
-            where = (piece.x * 16 + 48, (piece.y - 7) * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, (piece.y + 7) * 16 + 48)
+            where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, piece.y * 16 + 48)
             
             if where[0] <= pyxel.mouse_x <= where[0] + 16 and where[1] <= pyxel.mouse_y <= where[1] + 16:
                 self.hover = "promote_queen"
@@ -178,7 +178,7 @@ class App:
 
             if piece.color == "white":
                 del self.pieces_white[index]
-                self.pieces_white.insert(index, Piece(piece_type, (piece.x, piece.y), "white")) 
+                self.pieces_white.insert(index, Piece(piece_type, (piece.x, piece.y), "white"))
             else: 
                 del self.pieces_black[index]
                 self.pieces_black.insert(index, Piece(piece_type, (piece.x, piece.y), "black"))
@@ -186,28 +186,33 @@ class App:
             self.waiting_promotion = None
 
     def handle_board_click(self, x, y):
-        # gère ici le fait de faire bouger une pièce
-        # en gros tu check si le mec clique dans une case où le pion peut bouger (coord in piece.possible_moves truc du genre) et si oui tu changes les coordonnées du pion et execute self.next_turn()
-        # la mort des pions est gérée par la fonction piece.update() de thomas!
+        if self.waiting_promotion: # si on a une promotion en attente, on ne peut pas bouger de pièce
+            return
+
         piece = self.find_piece_at(x, y) # on chope la pièce aux coordonnées
         if piece: # si y'a une pièce
             if (self.player_turn == 0 and piece in self.pieces_white) or (self.player_turn == 1 and piece in self.pieces_black): # si c'est le tour du joueur de la pièce
                 self.selected_piece = [x, y] # on sélectionne la pièce
-        elif self.selected_piece:
+        if self.selected_piece:
             if [x, y] in self.find_piece_at(self.selected_piece[0], self.selected_piece[1]).possible_moves: # vérifie si la pièce peut aller à cet endroit
                 self.check_rules() # vérifie si on fait un roque
+                opponent = piece # on stocke la pièce adverse (si y'en a une)
                 piece = self.find_piece_at(self.selected_piece[0], self.selected_piece[1]) # on récupère la pièce sélectionnée
                 piece.bouger(x,y) # on déplace la pièce
+
+                if opponent and opponent.alive and opponent.color != piece.color:
+                    opponent.alive = False
+
                 pieces_total = self.pieces_black + self.pieces_white
                 for piece_to_update in pieces_total:
                     piece_to_update.update(pieces_total)
                 self.selected_piece = None # on désélectionne la pièce
+                self.promotion() # on check si on doit promouvoir un pion
                 self.player_turn = 1 - self.player_turn # on change de joueur
 
     def check_rules(self):
         self.castling()
         self.en_passant()
-        self.promotion()
         # à implémenter: le reste des règles
 
     # permet de récupérer une instance de la classe pièce dans App avec les coordonnées sur le plateau
@@ -255,9 +260,8 @@ class App:
                 coords = self.get_dead_coordinates("black", key) # on récupère les coordonnées où afficher les pièces mortes
                 texture_coords = self.get_ui_texture_coordinates(Piece(key, (0,0), "black")) # on récupère les coordonnées des textures des pièces
                 number = pieces_by_type[0][key]
-
                 pyxel.blt(coords[0], coords[1], 0, texture_coords[0], texture_coords[1], 16, 16, 0) # on dessine les pièces aux coordonnées corrected
-                pyxel.text(coords[0] + 11, coords[1], f"x{number}", pyxel.COLOR_BLACK) # un petit indicateur du nombre de pièces mortes du type
+                pyxel.text(coords[0] + 10, coords[1], f"x{number}", pyxel.COLOR_BLACK) # un petit indicateur du nombre de pièces mortes du type
         
         for key in pieces_by_type[1].keys(): # blanc
             if pieces_by_type[1][key]:
@@ -266,7 +270,7 @@ class App:
                 number = pieces_by_type[1][key]
 
                 pyxel.blt(coords[0], coords[1], 0, texture_coords[0], texture_coords[1], 16, 16, 0)
-                pyxel.text(coords[0] + 11, coords[1], f"x{number}", pyxel.COLOR_BLACK)
+                pyxel.text(coords[0] + 10, coords[1], f"x{number}", pyxel.COLOR_BLACK)
 
     # permet de trier les pièces par leur type
     def sort_by_type(self, pieces):
@@ -346,12 +350,12 @@ class App:
         }
 
         coords_black = {
-            "pawn": (64, 192),
-            "rook": (80, 192),
-            "knight": (96, 192),
-            "bishop": (112, 192),
-            "queen": (128, 192),
-            "king": (144, 192)
+            "pawn": (64, 176),
+            "rook": (80, 176),
+            "knight": (96, 176),
+            "bishop": (112, 176),
+            "queen": (128, 176),
+            "king": (144, 176)
         }
 
         return coords_black[type] if color == "black" else coords_white[type]
@@ -454,7 +458,8 @@ class App:
     def draw_promotion_interface(self):
         piece = self.waiting_promotion
         if piece:
-            where = (piece.x * 16 + 48, (piece.y - 7) * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, (piece.y + 7) * 16 + 48) # TODO FIX THIS CAUSE THE COORDINATES ARE INCORRECT SINCE I USED TO PUT THE WHITE PROMOTIONNAL PANEL IN THE WHITE SECTION (MAKE INVERSE)
+            where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, piece.y * 16 + 48)
+
 
             pyxel.rect(where[0], where[1], 64, 16, pyxel.COLOR_WHITE)
             if self.hover == "promote_bishop":
