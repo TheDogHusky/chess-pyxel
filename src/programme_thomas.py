@@ -79,6 +79,7 @@ class Piece:
     
     def update(self, pieces: list["Piece"]):
         # ici, on définit toutes les variables puisqu'une fois la boucle lancée, on veut que les modifications apportées fonctionnent correctement
+        self.possible_moves = [] # on réinitialise la liste des coups possibles à chaque update
         coup_possible = True
         limites_cree = False
         limit_max_x = 7
