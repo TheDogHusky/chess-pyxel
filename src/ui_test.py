@@ -3,6 +3,7 @@
 # desc: A pyxel chess game, made for the NSI project of the Simone Veil high school
 # site: https://github.com/TheDogHusky/chess-pyxel
 # version: 0.1
+from typing import List
 
 # Créé par abillard2, le 02/12/2025 en Python 3.7
 
@@ -47,6 +48,8 @@ class App:
         self.menu_opened = False # le menu est-il ouvert ?
         self.selected_piece = None # quelle pièce est sélectionnée ?
         self.waiting_promotion = None # Instance de Piece
+        self.pieces_black: List[Piece] = []
+        self.pieces_white: List[Piece] = []
 
         # on montre la sourit, initialise le jeu et le lance !
         pyxel.mouse(True)
@@ -60,8 +63,6 @@ class App:
 
     # cette fonction sert à initialiser les différentes variables du jeu qui prendraient trop de place visuellement dans le __init__
     def init_game(self):
-        self.pieces_black = []
-        self.pieces_white = []
         # on crée les pions selon les règles de l'échec
         for i in range(0, 2):
             self.pieces_white.append(Piece("knight", (1 + i * 5, 0)))
@@ -79,7 +80,7 @@ class App:
         self.pieces_white.append(Piece("king", (4, 0)))
 
         for piece in self.pieces_black + self.pieces_white:
-            piece.update(self.pieces_black + self.pieces_white)
+            piece.update(self.pieces_black, self.pieces_white)
 
     # Sert à dessiner les graphismes
     def draw(self):
@@ -141,6 +142,8 @@ class App:
         self.init_game()
         self.selected_piece = None
         self.waiting_promotion = None
+        self.pieces_black = []
+        self.pieces_white = []
 
     # utilisé pour mettre à jour sur quoi on a cliqué
     def update_clicks(self):
@@ -205,7 +208,7 @@ class App:
 
                 pieces_total = self.pieces_black + self.pieces_white
                 for piece_to_update in pieces_total:
-                    piece_to_update.update(pieces_total)
+                    piece_to_update.update(self.pieces_black, self.pieces_white)
                 self.selected_piece = None # on désélectionne la pièce
                 self.promotion() # on check si on doit promouvoir un pion
                 self.player_turn = 1 - self.player_turn # on change de joueur

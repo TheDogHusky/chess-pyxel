@@ -77,9 +77,112 @@ class Piece:
         else: #pour le roi
             pass""" #j'ai tout mis dans une docstring parce qu'on sait jamais
     
-    def update(self, pieces: list["Piece"]):
+    def get_positions_theoriques_pawn(self, pieces_adverses: list["Piece"]):
+        """
+        Docstring for get_positions_theoriques_pawn
+        
+        :param self: Description
+        :param pieces_adverses: Utile pour déterminer si le pion peut faire un coup en diagonale
+        :type pieces_adverses: list["Piece"]
+        """
+        if self.color == "white":
+            self.possible_moves.append([self.x, self.y + 1])
+            for element in pieces_adverses:
+                if element.x == self.x + 1 and element.y == self.y + 1:
+                    self.possible_moves.append([self.x + 1, self.y + 1])
+                elif element.x == self.x - 1 and element.y == self.y + 1:
+                    self.possible_moves.append([self.x - 1, self.y + 1])
+            if not self.has_moved:
+                self.possible_moves.append([self.x, self.y + 2])
+        elif self.color == "black":
+            self.possible_moves.append([self.x, self.y - 1])
+            for element in pieces_adverses:
+                if element.x == self.x + 1 and element.y == self.y - 1:
+                    self.possible_moves.append([self.x + 1, self.y - 1])
+                elif element.x == self.x - 1 and element.y == self.y - 1:
+                    self.possible_moves.append([self.x - 1, self.y - 1])
+            if not self.has_moved:
+                self.possible_moves.append([self.x, self.y - 2])
+
+    def get_position_theorique_rook(self, pieces_adverses):
+        min_x = 0
+        max_x = 7
+        min_y = 0
+        max_y = 7
+        """ici, je fais 2 boucles, une pour x et une pour y. J'ajoute toutes les cases sur la ligne et la colonne de la tour comme theoriquement possible
+        excepté là où il se trouve déjà"""
+
+        for element in pieces_adverses:
+            if element.x < self.x and min_x < element.x:
+                min_x = element.x
+
+
+        for i in range(8): #je fais d'abord pour x
+                self.possible_moves.append([i, self.y])
+        for i in range(8): #je fais pour y
+            if i != self.y:
+                self.possible_moves.append([self.x, i])
+
+    def get_position_theorique_bishop(self):
+        pass
+        
+    def get_position_theorique_knight(self):
+        pass
+
+    def get_position_theorique_queen(self):
+        pass
+
+    def get_position_theorique_king(self):
+        pass
+
+    def get_positions_theoriques(self, pieces_adverses: list["Piece"]):
+        if self.type == "pawn":
+            self.get_positions_theoriques_pawn(pieces_adverses)
+        elif self.type == "rook":
+            self.get_position_theorique_rook(pieces_adverses)
+        elif self.type == "bishop":
+            self.get_position_theorique_bishop()
+
+    def limites_plateau(self):
+        coups_impossibles = []
+        nb_coups = 0 #il permet de, faire en sorte que lors de la suppression des elements de la liste de coups, le décalage qui se crée naturellement avec pop soit corrigé
+        for i in range(len(self.possible_moves)):
+            if self.possible_moves[i][0] > 7 or self.possible_moves[i][0] < 0 or self.possible_moves[i][1] > 7 or self.possible_moves[i][1] < 0:
+                coups_impossibles.append(i - nb_coups)
+                nb_coups += 1
+        for i in range(len(coups_impossibles)):
+            self.possible_moves[coups_impossibles[i]].pop()
+    
+    def collision(self, pieces_alliees: list["Piece"]):
+        collision = []
+        correction_decalage = 0
+        for i in range(len(pieces_alliees)):
+            for j in range(len(self.possible_moves)):
+                if pieces_alliees[i].x == self.possible_moves[j][0] and pieces_alliees[i].y == self.possible_moves[j][1]:
+                    collision.append(j - correction_decalage)
+                    correction_decalage += 1
+        for i in range(len(collision)):
+            self.possible_moves[collision[i]].pop()
+
+    def update(self, pieces_blanches: list["Piece"], pieces_noires: list["Piece"]):
+        self.possible_moves = [] #on réinitialise la liste de coups possibles
+        # mets a jour la liste des coups possibles pour une pièce (self)
+        # calcul des coups possibles pour la pièce en fonction de la position des autres pions de la même couleur
+            # calcul des positions théoriques en fonction du type de piece
+            # detection sortie du plateau
+            # detection collision avec pièce de la même couleur
+        if self.color == "white":
+            self.get_positions_theoriques(pieces_noires)
+        elif self.color == "black":
+            self.get_positions_theoriques(pieces_blanches)
+        self.limites_plateau #on enleve les coups qui tapent hors du plateau
+        if self.color == "white":
+            self.collision(pieces_blanches)
+        elif self.color == "black":
+            self.collision(pieces_noires)
+
+    def update_v0(self, pieces: list["Piece"]):
         # ici, on définit toutes les variables puisqu'une fois la boucle lancée, on veut que les modifications apportées fonctionnent correctement
-        self.possible_moves = [] # on réinitialise la liste des coups possibles à chaque update
         coup_possible = True
         limites_cree = False
         limit_max_x = 7
@@ -91,31 +194,54 @@ class Piece:
         moins_moins = -7
         moins_plus = -7
         liste_provisoire = []
+        self.possible_moves = [] #on réinitialise les coups possibles a chaques coups
+        """on calcul, selon le type de pion, les coups possibles en prenant en compte les pions de sa couleur et ceux de
+        l'adversaire"""
         for x in range(8):
             for y in range(8):
                 if self.type == "pawn":
+                    avance_un = True
+                    avance_deux = True
                     if self.color == "white": #si le pion est blanc
-                        if x-1 == self.x:
+                        if x == self.x:
                             for element in pieces:
-                                if element.x == x and element.y == y:
-                                    coup_possible = False
-                                elif element.x == x+1 and element.y == y+1:
-                                    self.possible_moves.append([x+1,y+1])
-                                elif element.x == x+1 and element.y == y-1:
-                                    self.possible_moves.append([x+1,y-1])
-                            if coup_possible:
+                                if element.color != self.color:
+                                    if element.x == self.x + 1 and element.y == self.y + 1:
+                                        self.possible_moves.append([x + 1,y + 1])
+                                    elif element.x == self.x - 1 and element.y == self.y + 1:
+                                        self.possible_moves.append([x - 1,y + 1])
+                                    elif  element.x == self.x and element.y == self.y + 1:
+                                        coup_possible = False
+                                        avance_un = False
+                                    elif  element.x == self.x and element.y == self.y + 2:
+                                        coup_possible = False
+                                        avance_deux = False
+                            if self.x == x and self.y + 1 == y and avance_un == True:
                                 self.possible_moves.append([x,y])
+                                coup_possible = True
+                            elif self.x == x and self.y + 2 == y and not self.has_moved and avance_deux == True and coup_possible == True:
+                                self.possible_moves.append([x,y])
+                                coup_possible = True
                     else: #si le pion est noir
-                        if x+1 == self.x:
+                        if x == self.x:
                             for element in pieces:
-                                if element.x == x and element.y == y:
-                                    coup_possible = False
-                                elif element.x == x-1 and element.y == y+1:
-                                    self.possible_moves.append([x-1,y+1])
-                                elif element.x == x-1 and element.y == y-1:
-                                    self.possible_moves.append([x-1,y-1])
-                            if coup_possible:
+                                if element.color != self.color:
+                                    if element.x == self.x + 1 and element.y == self.y - 1:
+                                        self.possible_moves.append([x + 1,y + 1])
+                                    elif element.x == self.x - 1 and element.y == self.y - 1:
+                                        self.possible_moves.append([x - 1,y + 1])
+                                    elif  element.x == self.x and element.y == self.y - 1:
+                                        coup_possible = False
+                                        avance_un = False
+                                    elif  element.x == self.x and element.y == self.y - 2:
+                                        coup_possible = False
+                                        avance_deux = False
+                            if self.x == x and self.y - 1 == y and avance_un == True:
                                 self.possible_moves.append([x,y])
+                                coup_possible = True
+                            elif self.x == x and self.y - 2 == y and not self.has_moved and avance_deux == True and coup_possible == True:
+                                self.possible_moves.append([x,y])
+                                coup_possible = True
                 elif self.type == "rook":
                     if not limites_cree:
                         #si les limites de déplacement ne sont pas créés, ont les créer pour savoir quelles pieces limites
