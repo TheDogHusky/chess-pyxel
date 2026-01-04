@@ -139,11 +139,11 @@ class App:
     # utilisé pour le bouton recommencer, on réinitialise tout
     def restart(self):
         self.player_turn = 0
+        self.pieces_black = []
+        self.pieces_white = []
         self.init_game()
         self.selected_piece = None
         self.waiting_promotion = None
-        self.pieces_black = []
-        self.pieces_white = []
 
     # utilisé pour mettre à jour sur quoi on a cliqué
     def update_clicks(self):
