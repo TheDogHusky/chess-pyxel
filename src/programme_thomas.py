@@ -1,5 +1,6 @@
 #le code n'est pas fini mais si quelqu'un veut lire où j'en suis, voilà un aperçu
 
+
 class Piece:
     def __init__(self, type, coords=(0,0), color="white"):
         self.alive = True
@@ -115,12 +116,17 @@ class Piece:
         for element in pieces_adverses:
             if element.x < self.x and min_x < element.x:
                 min_x = element.x
-
-
+            elif element.x > self.x and max_x > element.x:
+                max_x = element.x
+            elif element.y < self.y and min_y < element.y:
+                min_y = element.y
+            elif element.y > self.y and max_y > element.y:
+                max_x = element.y
         for i in range(8): #je fais d'abord pour x
-                self.possible_moves.append([i, self.y])
+                if min_x <= i and i <= max_x and i != self.x:
+                    self.possible_moves.append([i, self.y])
         for i in range(8): #je fais pour y
-            if i != self.y:
+            if i != self.y and min_y <= i and i <= max_y:
                 self.possible_moves.append([self.x, i])
 
     def get_position_theorique_bishop(self):
@@ -164,7 +170,7 @@ class Piece:
         for i in range(len(collision)):
             self.possible_moves[collision[i]].pop()
 
-    def update(self, pieces_blanches: list["Piece"], pieces_noires: list["Piece"]):
+    def update_papa(self, pieces_blanches: list["Piece"], pieces_noires: list["Piece"]):
         self.possible_moves = [] #on réinitialise la liste de coups possibles
         # mets a jour la liste des coups possibles pour une pièce (self)
         # calcul des coups possibles pour la pièce en fonction de la position des autres pions de la même couleur
@@ -180,6 +186,386 @@ class Piece:
             self.collision(pieces_blanches)
         elif self.color == "black":
             self.collision(pieces_noires)
+
+
+    def update(self, pieces_blanches: list["Piece"], pieces_noires: list["Piece"]):
+
+        tableau_pieces = [[None for i in range(8)] for i in range(8)]
+        for element in pieces_noires:
+            if element.alive:
+                tableau_pieces[element.y][element.x]=element
+
+        for element in pieces_blanches:
+            if element.alive:
+                tableau_pieces[element.y][element.x]=element
+        
+        # ici, on définit toutes les variables puisqu'une fois la boucle lancée, on veut que les modifications apportées fonctionnent correctement
+        coup_possible = True
+        limites_cree = False
+        limit_max_x = 7
+        limit_mini_x = 0
+        limit_max_y = 7
+        limit_mini_y = 0
+        plus_plus = 7
+        plus_moins = 7
+        moins_moins = -7
+        moins_plus = -7
+        liste_provisoire = []
+        self.possible_moves = [] #on réinitialise les coups possibles a chaques coups
+        if self.type == "pawn":
+
+            """if self.color == "white":
+                case_x = self.x
+                case_y = self.y
+                case_disponible = True
+                if tableau_pieces[case_y + 1][case_x + 1] != None:
+                    self.possible_moves.append([case_x + 1,case_y + 1])
+                elif tableau_pieces[case_y + 1][case_x - 1] != None:
+                    self.possible_moves.append([case_x - 1, case_y + 1])
+                elif tableau_pieces[case_y + 1][case_x] == None:
+                    self.possible_moves.append([case_x, case_y + 1])
+                elif tableau_pieces[case_y + 1][case_x] == None and tableau_pieces[case_y + 2][case_x] == None and not self.has_moved:
+                    self.possible_moves.append([case_x, case_y + 2])
+            elif self.color == "black":
+                case_x = self.x
+                case_y = self.y
+                case_disponible = True
+                if tableau_pieces[case_y - 1][case_x + 1] != None:
+                    self.possible_moves.append([case_x + 1,case_y - 1])
+                elif tableau_pieces[case_y - 1][case_x - 1] != None:
+                    self.possible_moves.append([case_x - 1, case_y - 1])
+                elif tableau_pieces[case_y - 1][case_x] == None:
+                    self.possible_moves.append([case_x, case_y - 1])
+                elif tableau_pieces[case_y - 1][case_x] == None and tableau_pieces[case_y - 2][case_x] == None and not self.has_moved:
+                    self.possible_moves.append([case_x, case_y - 2])"""
+            
+            if self.color == "white":
+                for element in pieces_noires:
+                    if element.x == self.x + 1 and element.y == self.y + 1:
+                        self.possible_moves.append([self.x + 1, self.y + 1])
+                    elif element.x == self.x - 1 and element.y == self.y + 1:
+                        self.possible_moves.append([self.x - 1, self.y + 1])
+                    elif element.x == self.x and element.y == self.y + 1:
+                        coup_possible = False
+                    elif not self.has_moved and not element.x == self.x and not element.y == self.y + 2 and coup_possible == True:
+                        self.possible_moves.append([self.x, self.y + 2])
+                if coup_possible == True:
+                    self.possible_moves.append([self.x, self.y + 1])
+
+            elif self.color == "black":
+                for element in pieces_blanches:
+                    if element.x == self.x + 1 and element.y == self.y - 1:
+                        self.possible_moves.append([self.x + 1, self.y - 1])
+                    elif element.x == self.x - 1 and element.y == self.y - 1:
+                        self.possible_moves.append([self.x - 1, self.y - 1])
+                    elif element.x == self.x and element.y == self.y - 1:
+                        coup_possible = False
+                    elif not self.has_moved and not element.x == self.x and not element.y == self.y - 2 and coup_possible == True:
+                        self.possible_moves.append([self.x, self.y - 2])
+                if coup_possible == True:
+                    self.possible_moves.append([self.x, self.y - 1])
+        elif self.type == "rook":
+            # je teste les déplacements vers la droite
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x < 7:
+                case_x += 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+
+            # je teste les déplacements vers la gauche
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x > 0:
+                case_x -= 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+
+            # je teste les déplacements vers le bas
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_y < 7:
+                case_y += 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+
+            # je teste les déplacements vers le haut
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_y > 0:
+                case_y -= 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+        elif self.type == "bishop":
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x < 7 and case_y < 7:
+                case_x += 1
+                case_y += 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x > 0 and case_y < 7:
+                case_x -= 1
+                case_y += 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x < 7 and case_y > 0:
+                case_x += 1
+                case_y -= 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x > 0 and case_y > 0:
+                case_x -= 1
+                case_y -= 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+        elif self.type == "queen":
+            # je teste les déplacements vers la droite
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x < 7:
+                case_x += 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+
+            # je teste les déplacements vers la gauche
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x > 0:
+                case_x -= 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+
+            # je teste les déplacements vers le bas
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_y < 7:
+                case_y += 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+
+            # je teste les déplacements vers le haut
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_y > 0:
+                case_y -= 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x < 7 and case_y < 7:
+                case_x += 1
+                case_y += 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x > 0 and case_y < 7:
+                case_x -= 1
+                case_y += 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x < 7 and case_y > 0:
+                case_x += 1
+                case_y -= 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+            case_disponible = True
+            case_x = self.x
+            case_y = self.y
+            while case_disponible and case_x > 0 and case_y > 0:
+                case_x -= 1
+                case_y -= 1
+                # test si la case est disponible (vide ou pièce adversaire)
+                case_courrante: Piece=tableau_pieces[case_y][case_x]
+                if case_courrante == None:
+                    #case vide, je continue
+                    self.possible_moves.append([case_x, case_y])
+                elif case_courrante.color != self.color:
+                    #case occupée par un adversaire, j'ajoute et je m'arrête
+                    self.possible_moves.append([case_x, case_y])
+                    case_disponible=False
+                else:
+                    #j'ai rencontré un pion de ma couleur
+                    case_disponible=False
+        elif self.type == "knight":
+            pass
+        elif self.type == "king":
+            pass
+
 
     def update_v0(self, pieces: list["Piece"]):
         # ici, on définit toutes les variables puisqu'une fois la boucle lancée, on veut que les modifications apportées fonctionnent correctement
