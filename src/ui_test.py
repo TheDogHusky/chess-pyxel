@@ -48,6 +48,20 @@ class App:
         self.menu_opened = False # le menu est-il ouvert ?
         self.selected_piece = None # quelle pièce est sélectionnée ?
         self.waiting_promotion = None # Instance de Piece
+
+        # Pour ces propriétés ci dessous, on a choisi cette façon de faire car les règles de jeu on deux dimensions:
+        # Une dimension de détection, donc dans on sélectionne une pièce, montrer ce qui est possible.
+        # Une dimension d'exécution, donc quand on clique pour bouger une pièce, on effectue les actions nécessaires.
+        
+        self.castling_possible = {
+            "white": False,
+            "black": False
+        } # indique si le roque est possible pour chaque couleur, et dans quel sens. Format: {"color": [is_possible: bool, (coords_x, coords_y)]} -> coords indiquent un élément des possible_moves du roi pour le roque
+        self.en_passant_possible = {
+            "white": None,
+            "black": None
+        } # indique si une prise en passant est possible pour chaque couleur. Format: {"color": Piece} -> Piece est le pion adverse pouvant être capturé en passant
+        
         self.pieces_black: List[Piece] = []
         self.pieces_white: List[Piece] = []
 
@@ -150,6 +164,14 @@ class App:
         self.init_game()
         self.selected_piece = None
         self.waiting_promotion = None
+        self.en_passant_possible = {
+            "white": None,
+            "black": None
+        }
+        self.castling_possible = {
+            "white": False,
+            "black": False
+        }
 
     def update_clicks(self):
         """Gère les clics de la souris et effectue les actions appropriées."""
@@ -207,10 +229,17 @@ class App:
         if piece: # si y'a une pièce
             if (self.player_turn == 0 and piece in self.pieces_white) or (self.player_turn == 1 and piece in self.pieces_black): # si c'est le tour du joueur de la pièce
                 self.selected_piece = [x, y] # on sélectionne la pièce
+                self.check_rules() # vérifie les règles spéciales
+                
+                return
         if self.selected_piece:
             selected = self.find_piece_at(self.selected_piece[0], self.selected_piece[1])
+            self.castling_move(x, y) # on check si on doit faire un roque
+            if self.en_passant_possible["white"] or self.en_passant_possible["black"]:
+                self.en_passant_move(selected) # on check si on doit faire une prise en passant
+                return
+            
             if selected and [x, y] in selected.possible_moves: # vérifie si la pièce peut aller à cet endroit
-                self.check_rules() # vérifie si on fait un roque
                 opponent = piece # on stocke la pièce adverse (si y'en a une)
                 piece = selected # on récupère la pièce sélectionnée
                 piece.bouger(x,y) # on déplace la pièce
@@ -218,12 +247,17 @@ class App:
                 if opponent and opponent.alive and opponent.color != piece.color:
                     opponent.alive = False
 
-                pieces_total = self.pieces_black + self.pieces_white
-                for piece_to_update in pieces_total:
-                    piece_to_update.update(self.pieces_black, self.pieces_white)
-                self.selected_piece = None # on désélectionne la pièce
-                self.promotion() # on check si on doit promouvoir un pion
-                self.player_turn = 1 - self.player_turn # on change de joueur
+                self.next_turn() # on passe au tour suivant
+
+                return
+
+    def next_turn(self):
+        pieces_total = self.pieces_black + self.pieces_white
+        for piece_to_update in pieces_total:
+            piece_to_update.update(self.pieces_black, self.pieces_white)
+        self.selected_piece = None # on désélectionne la pièce
+        self.promotion() # on check si on doit promouvoir un pion
+        self.player_turn = 1 - self.player_turn # on change de joueur
 
     def check_rules(self):
         """Vérifie et applique les règles spéciales des échecs lors d'un déplacement de pièce."""
@@ -256,11 +290,10 @@ class App:
             pyxel.rectb(x * 16 + 48, y * 16 + 32, 16, 16, pyxel.COLOR_DARK_BLUE) # case de pièce sélectionnée
             # utilisation de piece.possible_moves pour afficher les coups possibles
             selected = self.find_piece_at(x, y)
-            if not selected:
-                return
-            for move in selected.possible_moves: # pour chaque coup possible, on met en valeur
-                mx, my = move
-                pyxel.rectb(mx * 16 + 48, my * 16 + 32, 16, 16, pyxel.COLOR_LIGHT_BLUE)
+            if selected:
+                for move in selected.possible_moves: # pour chaque coup possible, on met en valeur
+                    mx, my = move
+                    pyxel.rectb(mx * 16 + 48, my * 16 + 32, 16, 16, pyxel.COLOR_LIGHT_BLUE)
 
     def draw_pieces(self):
         """Dessine toutes les pièces vivantes sur le plateau de jeu."""
@@ -437,38 +470,86 @@ class App:
 
 # ======================== Owen ======================== #
 
+    def castling_move(self, x, y):
+        if self.castling_possible["white"] and self.player_turn == 0:
+            king = self.find_piece_at(4, 0)
+            if (2, 0) in king.possible_moves: # roque côté dame
+                rook = self.find_piece_at(0, 0)
+                rook.bouger(3, 0)
+                king.bouger(2, 0)
+                self.castling_possible["white"] = False # on reset la possibilité de roque pour les blancs
+                self.next_turn()
+            else: # roque côté roi
+                rook = self.find_piece_at(7, 0)
+                rook.bouger(5, 0)
+                king.bouger(6, 0)
+                self.next_turn()
+            self.castling_possible["white"] = False # on reset la possibilité de roque pour les blancs
+        elif self.castling_possible["black"] and self.player_turn == 1:
+            king = self.find_piece_at(4, 7)
+            if (2, 7) in king.possible_moves: # roque côté dame
+                rook = self.find_piece_at(0, 7)
+                rook.bouger(3, 7)
+                king.bouger(2, 7)
+                self.next_turn()
+            else: # roque côté roi
+                rook = self.find_piece_at(7, 7)
+                rook.bouger(5, 7)
+                king.bouger(6, 7)
+                self.next_turn()
+            self.castling_possible["black"] = False # on reset la possibilité de roque pour les noirs
+
     def castling(self):
         # Vérifier le tour du joueur actuel
         if self.player_turn == 0: # Roque pour les blancs (joueur 1)
             # Récupérer le roi blanc et les tours blanches
             king = self.find_piece_at(4, 0)
             left_rook = self.find_piece_at(0, 0)  # Tour de gauche (case a1)
-            right_rook = self.find_piece_at(7, 0)  # Tour de droite (case h1)4
+            right_rook = self.find_piece_at(7, 0)  # Tour de droite (case h1)
             if king and king.type == "king" and left_rook and left_rook.type == "rook" and right_rook and right_rook.type == "rook": # Vérifier que le roi et les tours sont présents et à leur position initiale
-                if self.selected_piece == (4, 0): # Vérifier si le roi blanc est sélectionné
+                if self.selected_piece and self.selected_piece == [4, 0]: # Vérifier si le roi blanc est sélectionné
                     if not self.find_piece_at(1, 0) and not self.find_piece_at(2, 0) and not self.find_piece_at(3, 0): # Roque côté dame
-                        if left_rook.has_moved == False and king.has_moved == False:
-                            left_rook.bouger(3, 0) # tour se déplace à côté du roi
-                            king.bouger(2, 0) # roi se déplace
+                        if left_rook.has_moved == False and king.has_moved == False: # Vérifier que ni le roi ni la tour n'ont bougé
+                            if (2,0) not in king.possible_moves: king.possible_moves.append((2, 0)) # ajouter le roque côté dame aux coups possibles du roi
+                            self.castling_possible["white"] = True # indiquer que le roque côté dame est possible pour les blancs
                     if not self.find_piece_at(5, 0) and not self.find_piece_at(6, 0): # Roque côté roi
                         if right_rook.has_moved == False and king.has_moved == False:
-                            right_rook.bouger(5, 0) # tour se déplace à côté du roi
-                            king.bouger(6, 0) # roi se déplace
+                            if (6,0) not in king.possible_moves: king.possible_moves.append((6, 0)) # ajouter le roque côté roi aux coups possibles du roi
+                            self.castling_possible["white"] = True # indiquer que le roque côté roi est possible pour les blancs
         else: # Roque pour les noirs (joueur 2)
             # Récupérer le roi noir et les tours noires
             king = self.find_piece_at(4, 7)
             left_rook = self.find_piece_at(0, 7)  # Tour de gauche (case a8)
             right_rook = self.find_piece_at(7, 7)  # Tour de droite (case h8)
             if king and king.type == "king" and left_rook and left_rook.type == "rook" and right_rook and right_rook.type == "rook": # Vérifier que le roi et les tours sont présents et à leur position initiale
-                if self.selected_piece == (4, 7): # Vérifier si le roi noir est sélectionné
+                if self.selected_piece and self.selected_piece == [4, 7]: # Vérifier si le roi noir est sélectionné
                     if not self.find_piece_at(1, 7) and not self.find_piece_at(2, 7) and not self.find_piece_at(3, 7): # Roque côté dame
-                        if left_rook.has_moved == False and king.has_moved == False:
-                            left_rook.bouger(3, 7) # tour se déplace à côté du roi
-                            king.bouger(2, 7) # roi se déplace
+                        if left_rook.has_moved == False and king.has_moved == False: # Vérifier que ni le roi ni la tour n'ont bougé
+                            if (2,7) not in king.possible_moves: 
+                                king.possible_moves.append((2, 7)) # ajouter le roque côté dame aux coups possibles du roi
+                            self.castling_possible["black"] = True # indiquer que le roque côté dame est possible pour les noirs
                     if not self.find_piece_at(5, 7) and not self.find_piece_at(6, 7): # Roque côté roi
                         if right_rook.has_moved == False and king.has_moved == False:
-                            right_rook.bouger(5, 7) # tour se déplace à côté du roi
-                            king.bouger(6, 7) # roi se déplace
+                            if (6,7) not in king.possible_moves: 
+                                king.possible_moves.append((6, 7)) # ajouter le roque côté roi aux coups possibles du roi
+                            self.castling_possible["black"] = True # indiquer que le roque côté roi est possible pour les noirs
+
+    def en_passant_move(self, selected):
+        if self.en_passant_possible["white"] and self.player_turn == 0: # prise en passant pour les blancs
+            pawn = self.find_piece_at(self.en_passant_possible["white"].x, self.en_passant_possible["white"].y)
+            if pawn and pawn.type == "pawn":
+                selected.bouger(pawn.x, pawn.y + 1)
+                self.en_passant_possible["white"] = None
+                pawn.alive = False
+                self.next_turn()
+        elif self.en_passant_possible["black"]: # prise en passant pour les noirs
+            pawn = self.find_piece_at(self.en_passant_possible["black"].x, self.en_passant_possible["black"].y)
+            if pawn and pawn.type == "pawn":
+                print("found pawn")
+                selected.bouger(pawn.x, pawn.y - 1)
+                pawn.alive = False
+                self.en_passant_possible["black"] = None
+                self.next_turn()
 
     def en_passant(self):
         """
@@ -484,33 +565,67 @@ class App:
         4. La prise en passant ne peut être exécutée que par un pion et seulement contre
             un autre pion.
         """
-        pass # TODO implémenter la prise en passant
+        # Vérifier le tour du joueur actuel
+        if self.player_turn == 0:  # Prise en passant pour les blancs
+            for piece in self.pieces_white:
+                if piece.type == "pawn" and piece.alive:
+                    # Vérifier les cases à gauche et à droite du pion blanc
+                    for dx in [-1, 1]: # gauche et droite
+                        enemy_x = piece.x + dx
+                        enemy_y = piece.y
+                        enemy_piece = self.find_piece_at(enemy_x, enemy_y) # on cherche la pièce ennemie
+                        
+                        # Vérifier s'il y a un pion noir adjacent
+                        if enemy_piece and enemy_piece.type == "pawn" and enemy_piece.color == "black":
+                            # Ajouter la prise en passant comme coup possible
+                            en_passant_move = (enemy_x, enemy_y + 1)
+                            if en_passant_move not in piece.possible_moves:
+                                piece.possible_moves.append(en_passant_move)
+                            self.en_passant_possible["white"] = enemy_piece # Stocker le pion noir pouvant être capturé en passant
+
+        else:  # Prise en passant pour les noirs
+            for piece in self.pieces_black:
+                if piece.type == "pawn" and piece.alive:
+                    # Vérifier les cases à gauche et à droite du pion noir
+                    for dx in [-1, 1]:
+                        enemy_x = piece.x + dx
+                        enemy_y = piece.y
+                        enemy_piece = self.find_piece_at(enemy_x, enemy_y)
+                        
+                        # Vérifier s'il y a un pion blanc adjacent
+                        if enemy_piece and enemy_piece.type == "pawn" and enemy_piece.color == "white":
+                            # Ajouter la prise en passant comme coup possible
+                            en_passant_move = (enemy_x, enemy_y - 1)
+                            if en_passant_move not in piece.possible_moves:
+                                piece.possible_moves.append(en_passant_move)
+                            self.en_passant_possible["black"] = enemy_piece # Stocker le pion noir pouvant être capturé en passant
 
     def draw_promotion_interface(self):
         """Dessine l'interface de promotion des pions lorsqu'une promotion est en attente."""
 
-        piece = self.waiting_promotion
+        piece = self.waiting_promotion # on récupère la pièce en attente de promotion
         if piece:
-            where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, piece.y * 16 + 48)
+            where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, piece.y * 16 + 48) # on calcule où dessiner l'interface de promotion
 
 
-            pyxel.rect(where[0], where[1], 64, 16, pyxel.COLOR_WHITE)
-            if self.hover == "promote_bishop":
-                pyxel.rect(where[0] + 16, where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
-            elif self.hover == "promote_knight":
+            pyxel.rect(where[0], where[1], 64, 16, pyxel.COLOR_WHITE) # fond blanc de l'interface
+            if self.hover == "promote_bishop": # si on survole l'option "fou"
+                pyxel.rect(where[0] + 16, where[1], 16, 16, pyxel.COLOR_DARK_BLUE) # on surligne l'option
+            elif self.hover == "promote_knight": # si on survole l'option "cavalier"
                 pyxel.rect(where[0] + 48, where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
-            elif self.hover == "promote_rook":
+            elif self.hover == "promote_rook": # si on survole l'option "tour"
                 pyxel.rect(where[0] + 32, where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
-            elif self.hover == "promote_queen":
+            elif self.hover == "promote_queen": # si on survole l'option "reine"
                 pyxel.rect(where[0], where[1], 16, 16, pyxel.COLOR_DARK_BLUE)
 
-            coords = self.get_ui_texture_coordinates(Piece("queen", (0,0), piece.color))
+            # on dessine les options de promotion
+            coords = self.get_ui_texture_coordinates(Piece("queen", (0,0), piece.color)) # reine
             pyxel.blt(where[0], where[1], 0, coords[0], coords[1], 16, 16, 0)
-            coords = self.get_ui_texture_coordinates(Piece("bishop", (0,0), piece.color))
+            coords = self.get_ui_texture_coordinates(Piece("bishop", (0,0), piece.color)) # fou
             pyxel.blt(where[0] + 16, where[1], 0, coords[0], coords[1], 16, 16, 0)
-            coords = self.get_ui_texture_coordinates(Piece("rook", (0,0), piece.color))
+            coords = self.get_ui_texture_coordinates(Piece("rook", (0,0), piece.color)) # tour
             pyxel.blt(where[0] + 32, where[1], 0, coords[0], coords[1], 16, 16, 0)
-            coords = self.get_ui_texture_coordinates(Piece("knight", (0,0), piece.color))
+            coords = self.get_ui_texture_coordinates(Piece("knight", (0,0), piece.color)) # cavalier
             pyxel.blt(where[0] + 48, where[1], 0, coords[0], coords[1], 16, 16, 0)
 
 
@@ -538,10 +653,3 @@ class App:
 
 
 App()
-
-
-
-# ======================= AFK Zone ======================== #
-#                                                           #
-#                                                           #
-# ========================================================= #
