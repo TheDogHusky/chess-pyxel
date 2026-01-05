@@ -201,45 +201,36 @@ class Piece:
         
         # ici, on définit toutes les variables puisqu'une fois la boucle lancée, on veut que les modifications apportées fonctionnent correctement
         coup_possible = True
-        limites_cree = False
-        limit_max_x = 7
-        limit_mini_x = 0
-        limit_max_y = 7
-        limit_mini_y = 0
-        plus_plus = 7
-        plus_moins = 7
-        moins_moins = -7
-        moins_plus = -7
-        liste_provisoire = []
         self.possible_moves = [] #on réinitialise les coups possibles a chaques coups
         if self.type == "pawn":
+            if self.color == "white":
+                direction = 1
+            else:
+                direction = -1
+            #si la case devant est vide, pour avancer de 1
+            if 0 <= self.y + direction <= 7:
+                for element in pieces_blanches + pieces_noires:
+                    if element.x == self.x and element.y == self.y + direction:
+                        coup_possible = False
+                if coup_possible:
+                    self.possible_moves.append([self.x, self.y + direction])
+                    if not self.has_moved:
+                        if 0 <= self.y + direction + direction<= 7:
+                            for element in pieces_blanches + pieces_noires:
+                                if element.x == self.x and element.y == self.y + direction:
+                                    coup_possible = False
+                            if coup_possible:
+                                self.possible_moves.append([self.x, self.y + direction + direction])
+            
+            for i in [-1,1]:
+                for element in pieces_blanches + pieces_noires:
+                    if element.x == self.x + i and element.y == self.y + direction and self.color != element.color:
+                        self.possible_moves.append([self.x + i, self.y + direction])
+
+            
+
 
             """if self.color == "white":
-                case_x = self.x
-                case_y = self.y
-                case_disponible = True
-                if tableau_pieces[case_y + 1][case_x + 1] != None:
-                    self.possible_moves.append([case_x + 1,case_y + 1])
-                elif tableau_pieces[case_y + 1][case_x - 1] != None:
-                    self.possible_moves.append([case_x - 1, case_y + 1])
-                elif tableau_pieces[case_y + 1][case_x] == None:
-                    self.possible_moves.append([case_x, case_y + 1])
-                elif tableau_pieces[case_y + 1][case_x] == None and tableau_pieces[case_y + 2][case_x] == None and not self.has_moved:
-                    self.possible_moves.append([case_x, case_y + 2])
-            elif self.color == "black":
-                case_x = self.x
-                case_y = self.y
-                case_disponible = True
-                if tableau_pieces[case_y - 1][case_x + 1] != None:
-                    self.possible_moves.append([case_x + 1,case_y - 1])
-                elif tableau_pieces[case_y - 1][case_x - 1] != None:
-                    self.possible_moves.append([case_x - 1, case_y - 1])
-                elif tableau_pieces[case_y - 1][case_x] == None:
-                    self.possible_moves.append([case_x, case_y - 1])
-                elif tableau_pieces[case_y - 1][case_x] == None and tableau_pieces[case_y - 2][case_x] == None and not self.has_moved:
-                    self.possible_moves.append([case_x, case_y - 2])"""
-            
-            if self.color == "white":
                 for element in pieces_noires:
                     if element.x == self.x + 1 and element.y == self.y + 1:
                         self.possible_moves.append([self.x + 1, self.y + 1])
@@ -263,7 +254,7 @@ class Piece:
                     elif not self.has_moved and not element.x == self.x and not element.y == self.y - 2 and coup_possible == True:
                         self.possible_moves.append([self.x, self.y - 2])
                 if coup_possible == True:
-                    self.possible_moves.append([self.x, self.y - 1])
+                    self.possible_moves.append([self.x, self.y - 1])"""
         elif self.type == "rook":
             # je teste les déplacements vers la droite
             case_disponible = True
@@ -561,11 +552,27 @@ class Piece:
                 else:
                     #j'ai rencontré un pion de ma couleur
                     case_disponible=False
-        elif self.type == "knight":
-            pass
         elif self.type == "king":
-            pass
-
+            #on itere sur les tuples pour savoir si le coups est possible à ces coordonnées relatives
+            directions = [[1,0],[1,-1],[1,1],[0,-1],[0,0],[0,1],[-1,-1],[-1,0],[-1,1]]
+            for dx, dy in directions: #découvert en faisant des tests que mettre deux variables en même temps fonctionne
+                nx = self.x + dx
+                ny = self.y + dy
+                if 0 <= nx <= 7 and 0 <= ny <= 7:
+                    piece = tableau_pieces[ny][nx]
+                    if piece == None or piece.color != self.color:
+                        self.possible_moves.append([nx,ny])
+        elif self.type == "knight":
+            #on applique la même logique que pour le roi avec les positions relatives. juste que cette fois ci, les deplacements
+            #correspondent à ceux du cavalier
+            directions = [[1, 2],[2, 1],[2, -1],[1, -2],[-1, -2],[-2, -1],[-2, 1],[-1, 2]]
+            for dx, dy in directions:
+                nx = self.x + dx
+                ny = self.y + dy
+                if 0 <= nx <= 7 and 0 <= ny <= 7:
+                    piece = tableau_pieces[ny][nx]
+                    if piece == None or piece.color != self.color:
+                        self.possible_moves.append([nx,ny])
 
     def update_v0(self, pieces: list["Piece"]):
         # ici, on définit toutes les variables puisqu'une fois la boucle lancée, on veut que les modifications apportées fonctionnent correctement

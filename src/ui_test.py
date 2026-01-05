@@ -432,8 +432,8 @@ class App:
         if self.menu_opened: # dessin des textes du menu
             pyxel.text(5, 22, "Recommencer", pyxel.COLOR_BLACK) # Position pour que le texte soit centré dans le bouton
             pyxel.text(5, 38, "Quitter", pyxel.COLOR_BLACK) # Position pour que le texte soit centré dans le bouton
-        pyxel.text(210, 5, "J 1", pyxel.COLOR_WHITE)
-        pyxel.text(210, 182, "J 2", pyxel.COLOR_WHITE)
+        pyxel.text(213, 5, "J1", pyxel.COLOR_WHITE)
+        pyxel.text(213, 182, "J2", pyxel.COLOR_WHITE)
 
 # ======================== Owen ======================== #
 
@@ -488,7 +488,7 @@ class App:
 
     def draw_promotion_interface(self):
         """Dessine l'interface de promotion des pions lorsqu'une promotion est en attente."""
-        
+
         piece = self.waiting_promotion
         if piece:
             where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, piece.y * 16 + 48)
