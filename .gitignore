@@ -4,3 +4,4 @@ aseprite projects
 .venv
 logs
 chess
+src/__pycache__

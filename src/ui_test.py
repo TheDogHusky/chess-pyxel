@@ -36,6 +36,7 @@ from typing import List
 
 class App:
     """Classe principale de l'application Pyxel-Chess."""
+
     def __init__(self):
         # initialisation de la fenêtre pyxel. NE PAS CHANGER LES VALEURS!
         pyxel.init(224, 192, title="Pyxel-Chess",fps=60)
@@ -57,6 +58,7 @@ class App:
 
     def update(self):
         """Met à jour l'état de l'application à chaque frame."""
+
         # on met à jour l'interface utilisateur
         self.update_ui()
 
@@ -65,6 +67,7 @@ class App:
         Initialise le plateau de jeu avec les pièces aux positions de départ.
         Elle contient aussi du code un peu trop gros pour le __init__, et permet de reset le jeu en cas de clic sur "recommencer" dans le menu.
         """
+
         # on crée les pions selon les règles de l'échec
         for i in range(0, 2):
             self.pieces_white.append(Piece("knight", (1 + i * 5, 0)))
@@ -86,6 +89,7 @@ class App:
 
     def draw(self):
         """Dessine l'interface utilisateur à chaque frame."""
+
         # On clear le jeu avec comme couleur de fond du noir
         pyxel.cls(1)
         # on dessine le plateau, les pièces, l'interface, les pièces mortes et l'interface de promotion
@@ -97,6 +101,7 @@ class App:
     
     def update_ui(self):
         """Met à jour l'état de l'interface utilisateur. (propriétés seulement, pas le dessin)"""
+
         self.update_hover()
         self.update_clicks()
 
@@ -138,6 +143,7 @@ class App:
         Réinitialise le jeu en remettant toutes les pièces à leur position de départ.
         Utilisé lors du clic sur "Recommencer" dans le menu.
         """
+
         self.player_turn = 0
         self.pieces_black = []
         self.pieces_white = []
@@ -175,6 +181,7 @@ class App:
 
     def handle_promotion_click(self, piece_type):
         """Gère le clic sur une option de promotion de pion."""
+
         if self.waiting_promotion:
             # on récupère l'index de la pièce en promotion dans la liste des pièces
             piece = self.waiting_promotion
@@ -220,6 +227,7 @@ class App:
 
     def check_rules(self):
         """Vérifie et applique les règles spéciales des échecs lors d'un déplacement de pièce."""
+
         self.castling()
         self.en_passant()
         # à implémenter: le reste des règles
@@ -232,8 +240,9 @@ class App:
                 return piece
         return None
 
-    # Permet de dessiner le plateau
     def draw_board(self):
+        """Dessine le plateau de jeu avec les cases et les surlignages."""
+        
         for x in range(8):
             for y in range(8): # plateau en 8*8 cases
                 if (x + y) % 2 == 0: # une case sur deux, on change la couleur (faut que le plateau soit beau)
@@ -253,15 +262,17 @@ class App:
                 mx, my = move
                 pyxel.rectb(mx * 16 + 48, my * 16 + 32, 16, 16, pyxel.COLOR_LIGHT_BLUE)
 
-    # Permet de dessiner toutes les pièces sur le plateau
     def draw_pieces(self):
+        """Dessine toutes les pièces vivantes sur le plateau de jeu."""
+
         pieces = self.pieces_white + self.pieces_black
         for piece in pieces:
             if piece.alive: # seulement si elles sont en vie
                 self.draw_piece(piece)
 
-    # Permet de dessiner les pièces mortes en haut sur les barres des joueurs
     def draw_dead_pieces(self):
+        """Dessine les pièces mortes sur l'interface utilisateur."""
+
         pieces = self.pieces_white + self.pieces_black
         pieces_dead = [piece for piece in pieces if not piece.alive] # on filtre les pièces mortes des pièces vivantes
 
@@ -284,8 +295,9 @@ class App:
                 pyxel.blt(coords[0], coords[1], 0, texture_coords[0], texture_coords[1], 16, 16, 0)
                 pyxel.text(coords[0] + 10, coords[1], f"x{number}", pyxel.COLOR_BLACK)
 
-    # permet de trier les pièces par leur type
     def sort_by_type(self, pieces):
+        """Trie les pièces mortes par type et couleur."""
+
         # on renverra deux dictionnaires dans un tableau avec à l'intérieur pour chasue type (clé) son nombre de pièces mortes du type (value)
         val = {
             "pawn": 0,
@@ -313,8 +325,9 @@ class App:
         
         return (val, val_white)
 
-    # Permet de récupérer les coordonnées des textures pour une pièce dans le fichier pyxres
     def get_ui_texture_coordinates(self, piece):
+        """Retourne les coordonnées (sx, sy) de la texture de la pièce dans le fichier pyxres."""
+
         # on stocke les valeurs "hard coded" des positions des textures dans des dictionnaires
         # clé: le type de pièce, valeur: un tuple avec les coordonnées (x, y)
         coords_white = {
@@ -343,15 +356,17 @@ class App:
 
         return (sx, sy)
     
-    # Permet de dessiner une pièce
     def draw_piece(self, piece):
+        """Dessine une pièce sur le plateau de jeu aux coordonnées correctes."""
+
         coords = self.get_ui_texture_coordinates(piece) # on récupère les coordonnées de la texture de la pièce dans 
         sx, sy = coords[0], coords[1]
 
         pyxel.blt(piece.x * 16 + 48, piece.y * 16 + 32, 0, sx, sy, 16, 16, 0) # on la dessine aux coordonnées correctes
 
-    # Permet de récupérer les coordonnées où afficher les pièces mortes pour chaque type
     def get_dead_coordinates(self, color, type):
+        """Retourne les coordonnées (x, y) où dessiner les pièces mortes de type 'type' et couleur 'color'."""
+
         coords_white = {
             "pawn": (64, 0),
             "rook": (80, 0),
@@ -372,8 +387,9 @@ class App:
 
         return coords_black[type] if color == "black" else coords_white[type]
 
-    # Permet de dessiner l'interface utilisateur (ui)
     def draw_ui(self):
+        """Dessine l'interface utilisateur (UI) à chaque frame."""
+
         # ---------------------------
         #    Les menus et boutons
         # ---------------------------
@@ -410,8 +426,9 @@ class App:
 
         self.draw_texts() # on dessine ensuite les textes
 
-    # Permet de dessiner les textes sur l'interface
     def draw_texts(self):
+        """Dessine les textes de l'interface utilisateur."""
+
         if self.menu_opened: # dessin des textes du menu
             pyxel.text(5, 22, "Recommencer", pyxel.COLOR_BLACK) # Position pour que le texte soit centré dans le bouton
             pyxel.text(5, 38, "Quitter", pyxel.COLOR_BLACK) # Position pour que le texte soit centré dans le bouton
@@ -470,6 +487,8 @@ class App:
         pass # TODO implémenter la prise en passant
 
     def draw_promotion_interface(self):
+        """Dessine l'interface de promotion des pions lorsqu'une promotion est en attente."""
+        
         piece = self.waiting_promotion
         if piece:
             where = (piece.x * 16 + 48, piece.y * 16 + 16) if piece.color == "black" else (piece.x * 16 + 48, piece.y * 16 + 48)
