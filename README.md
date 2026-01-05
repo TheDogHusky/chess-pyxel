@@ -19,11 +19,20 @@ python -m pip install pyxel
 ## Exécution
 
 ```bash
-python src/ui_test.py
+python main.py
 
 ```
 
 ## Fichiers
 
-- `chess.pyxres` - Fichier de ressources pyxel
-- `ui_test.py` - Code incomplet du jeu: seulement l'interface utilisateur et sa logique
+- `src/chess.pyxres` - Fichier de ressources pyxel
+- `main.py` - Point d'entrée du programme
+- `src/app.py` - Gestion de l'application pyxel
+- `src/utils.py` - Fonctions utilitaires
+- `src/piece.py` - Classe représentant les pièces d'échec
+- `src/rules.py` - Règles du jeu d'échec
+
+## Charge
+- utils.py, app.py, main.py, typage des fonctions/typage général: Adam
+- rules.py: Owen
+- piece.py: Thomas

@@ -1,4 +1,8 @@
+# Fichier piece.py contenant la classe Piece et ses méthodes
+# En charge: thomas
+
 class Piece:
+    """Classe représentant une pièce d'échecs."""
     def __init__(self, type, coords=(0,0), color="white"):
         self.alive = True
         self.x = coords[0]
@@ -11,6 +15,7 @@ class Piece:
         self.initial_2steps = False # pour les pions, savoir s'ils ont fait leur premier déplacement de 2 cases (utile pour la prise en passant)
 
     def bouger(self, x, y):
+        """Met à jour les coordonnées de la pièce et son état de déplacement."""
         if not self.has_moved:
             self.has_moved = True
             if y - self.y == 2:
@@ -21,6 +26,7 @@ class Piece:
         self.y = y
     
     def update(self, pieces_blanches: list["Piece"], pieces_noires: list["Piece"]):
+        """Met à jour les coups possibles de la pièce en fonction de sa position actuelle et de l'état du plateau."""
 
         tableau_pieces = [[None for i in range(8)] for i in range(8)]
         for element in pieces_noires:
@@ -380,5 +386,5 @@ class Piece:
 
     def deplacement(self, x, y):
         """cette fonction prend en argument une piece et les coordonnées de destination sélectionnées et renvoie un booleen pour
-        dir si le coup peut être joué ou pas"""
+        dire si le coup peut être joué ou pas"""
         return (x, y) in self.possible_moves
