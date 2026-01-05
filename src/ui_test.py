@@ -3,9 +3,6 @@
 # desc: A pyxel chess game, made for the NSI project of the Simone Veil high school
 # site: https://github.com/TheDogHusky/chess-pyxel
 # version: 0.1
-from typing import List
-
-# Créé par abillard2, le 02/12/2025 en Python 3.7
 
 # coordonnées bouton menu : (0,0) -> (16,16)
 # coordonnées option 1 : (0,17) -> (64,32)
@@ -23,6 +20,7 @@ from typing import List
 
 import pyxel
 from programme_thomas import Piece
+from typing import List
 
 # class piece, représente une pièce (un pion, un knight, etc..)
 # class Piece:
@@ -37,6 +35,7 @@ from programme_thomas import Piece
 
 
 class App:
+    """Classe principale de l'application Pyxel-Chess."""
     def __init__(self):
         # initialisation de la fenêtre pyxel. NE PAS CHANGER LES VALEURS!
         pyxel.init(224, 192, title="Pyxel-Chess",fps=60)
@@ -56,13 +55,16 @@ class App:
         self.init_game()
         pyxel.run(self.update, self.draw)
 
-    # run à chaque frame en premier
     def update(self):
+        """Met à jour l'état de l'application à chaque frame."""
         # on met à jour l'interface utilisateur
         self.update_ui()
 
-    # cette fonction sert à initialiser les différentes variables du jeu qui prendraient trop de place visuellement dans le __init__
     def init_game(self):
+        """
+        Initialise le plateau de jeu avec les pièces aux positions de départ.
+        Elle contient aussi du code un peu trop gros pour le __init__, et permet de reset le jeu en cas de clic sur "recommencer" dans le menu.
+        """
         # on crée les pions selon les règles de l'échec
         for i in range(0, 2):
             self.pieces_white.append(Piece("knight", (1 + i * 5, 0)))
@@ -80,36 +82,31 @@ class App:
         self.pieces_white.append(Piece("king", (4, 0)))
 
         for piece in self.pieces_black + self.pieces_white:
-            piece.update(self.pieces_black, self.pieces_white)
+            piece.update(self.pieces_black, self.pieces_white) # mise à jour initiale des coups possibles
 
-    # Sert à dessiner les graphismes
     def draw(self):
+        """Dessine l'interface utilisateur à chaque frame."""
         # On clear le jeu avec comme couleur de fond du noir
         pyxel.cls(1)
+        # on dessine le plateau, les pièces, l'interface, les pièces mortes et l'interface de promotion
         self.draw_board()
         self.draw_pieces()
         self.draw_ui()
         self.draw_dead_pieces()
         self.draw_promotion_interface()
-
-    # Fonction utilisée lors de chaque tour afin de gérer la mise en place du prochain tour
-    def next_turn(self):
-        #met la logique d'après chaque tour ici, le for piece in pieces, ...
-        pass # à implémenter
     
-    # Permet de mettre à jour l'interface (seulement les propriétés, pas la dessiner)
     def update_ui(self):
+        """Met à jour l'état de l'interface utilisateur. (propriétés seulement, pas le dessin)"""
         self.update_hover()
         self.update_clicks()
 
-    # Permet de mettre à jour ce sur quoi la souris passe
     def update_hover(self):
+        """Met à jour l'élément sur lequel la souris passe."""
+
         # Coordonnées du bouton menu en haut à droite
         if pyxel.mouse_x < 16 and pyxel.mouse_y < 16:
-            if not self.menu_opened: # si le menu est fermé, alors on est sur le bouton "ouvrir le menu"
-                self.hover = "menu_open"
-            else:
-                self.hover = "menu_close" # sinon, on passe la souris sur le bouton "fermer le menu" (x)
+            # si le menu est fermé, on passe la souris sur le bouton "ouvrir le menu", sinon sur "fermer le menu"
+            self.hover = "menu_open" if not self.menu_opened else "menu_close"
         elif self.menu_opened: # sinon, si on ne passe pas la souris sur le bouton du menu, et que le menu est ouvert, alors on passe sûrement la souris sur un bouton du menu
             if pyxel.mouse_x < 64 and 17 <= pyxel.mouse_y <= 32: # coordonnées du bouton de menu 1
                 self.hover = "menu_1"
@@ -136,8 +133,11 @@ class App:
         else:
             self.hover = "" # la souris n'est sur rien !
 
-    # utilisé pour le bouton recommencer, on réinitialise tout
     def restart(self):
+        """
+        Réinitialise le jeu en remettant toutes les pièces à leur position de départ.
+        Utilisé lors du clic sur "Recommencer" dans le menu.
+        """
         self.player_turn = 0
         self.pieces_black = []
         self.pieces_white = []
@@ -145,8 +145,9 @@ class App:
         self.selected_piece = None
         self.waiting_promotion = None
 
-    # utilisé pour mettre à jour sur quoi on a cliqué
     def update_clicks(self):
+        """Gère les clics de la souris et effectue les actions appropriées."""
+
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT): # seulement clic gauche
             # Logique : on regarde sur quoi on passait la souris, et on effecture des actions en conséquence
             if self.hover == "menu_open":
@@ -173,6 +174,7 @@ class App:
                 self.handle_promotion_click(piece_type)
 
     def handle_promotion_click(self, piece_type):
+        """Gère le clic sur une option de promotion de pion."""
         if self.waiting_promotion:
             # on récupère l'index de la pièce en promotion dans la liste des pièces
             piece = self.waiting_promotion
@@ -189,6 +191,8 @@ class App:
             self.waiting_promotion = None
 
     def handle_board_click(self, x, y):
+        """Gère le clic sur une case du plateau aux coordonnées (x, y)."""
+
         if self.waiting_promotion: # si on a une promotion en attente, on ne peut pas bouger de pièce
             return
 
@@ -197,10 +201,11 @@ class App:
             if (self.player_turn == 0 and piece in self.pieces_white) or (self.player_turn == 1 and piece in self.pieces_black): # si c'est le tour du joueur de la pièce
                 self.selected_piece = [x, y] # on sélectionne la pièce
         if self.selected_piece:
-            if [x, y] in self.find_piece_at(self.selected_piece[0], self.selected_piece[1]).possible_moves: # vérifie si la pièce peut aller à cet endroit
+            selected = self.find_piece_at(self.selected_piece[0], self.selected_piece[1])
+            if selected and [x, y] in selected.possible_moves: # vérifie si la pièce peut aller à cet endroit
                 self.check_rules() # vérifie si on fait un roque
                 opponent = piece # on stocke la pièce adverse (si y'en a une)
-                piece = self.find_piece_at(self.selected_piece[0], self.selected_piece[1]) # on récupère la pièce sélectionnée
+                piece = selected # on récupère la pièce sélectionnée
                 piece.bouger(x,y) # on déplace la pièce
 
                 if opponent and opponent.alive and opponent.color != piece.color:
@@ -214,12 +219,13 @@ class App:
                 self.player_turn = 1 - self.player_turn # on change de joueur
 
     def check_rules(self):
+        """Vérifie et applique les règles spéciales des échecs lors d'un déplacement de pièce."""
         self.castling()
         self.en_passant()
         # à implémenter: le reste des règles
 
-    # permet de récupérer une instance de la classe pièce dans App avec les coordonnées sur le plateau
     def find_piece_at(self, x, y):
+        """Retourne la pièce située aux coordonnées (x, y) si elle est vivante, sinon None."""
         all_pieces = self.pieces_white + self.pieces_black
         for piece in all_pieces:
             if piece.x == x and piece.y == y and piece.alive: # on find la piece que si elle est vivante
@@ -240,7 +246,10 @@ class App:
             x, y = self.selected_piece[0], self.selected_piece[1]
             pyxel.rectb(x * 16 + 48, y * 16 + 32, 16, 16, pyxel.COLOR_DARK_BLUE) # case de pièce sélectionnée
             # utilisation de piece.possible_moves pour afficher les coups possibles
-            for move in self.find_piece_at(x, y).possible_moves: # pour chaque coup possible, on met en valeur
+            selected = self.find_piece_at(x, y)
+            if not selected:
+                return
+            for move in selected.possible_moves: # pour chaque coup possible, on met en valeur
                 mx, my = move
                 pyxel.rectb(mx * 16 + 48, my * 16 + 32, 16, 16, pyxel.COLOR_LIGHT_BLUE)
 
@@ -408,6 +417,8 @@ class App:
             pyxel.text(5, 38, "Quitter", pyxel.COLOR_BLACK) # Position pour que le texte soit centré dans le bouton
         pyxel.text(210, 5, "J 1", pyxel.COLOR_WHITE)
         pyxel.text(210, 182, "J 2", pyxel.COLOR_WHITE)
+
+# ======================== Owen ======================== #
 
     def castling(self):
         # Vérifier le tour du joueur actuel
