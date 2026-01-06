@@ -13,20 +13,25 @@ class Piece:
         self.board = []
         self.type = type
         self.initial_2steps = False # pour les pions, savoir s'ils ont fait leur premier déplacement de 2 cases (utile pour la prise en passant)
+        self.initial_2steps_turn = -1 # pour savoir à quel tour le pion a fait son déplacement initial de 2 cases
 
-    def bouger(self, x, y):
+    def bouger(self, tours_played: int, x, y):
         """Met à jour les coordonnées de la pièce et son état de déplacement."""
         if not self.has_moved:
             self.has_moved = True
-            if y - self.y == 2:
+            if (self.color == "white" and y - self.y == 2) or (self.color == "black" and self.y - y == 2): # vérifie si le pion a fait son déplacement initial de 2 cases
                 self.initial_2steps = True
+                self.initial_2steps_turn = tours_played  # le tour doit être mis à jour dans la méthode update du jeu
         else:
             self.initial_2steps = False
         self.x = x
         self.y = y
     
-    def update(self, pieces_blanches: list["Piece"], pieces_noires: list["Piece"]):
+    def update(self, tours_played: int, pieces_blanches: list["Piece"], pieces_noires: list["Piece"]):
         """Met à jour les coups possibles de la pièce en fonction de sa position actuelle et de l'état du plateau."""
+
+        if self.initial_2steps and tours_played - self.initial_2steps_turn > 1:
+            self.initial_2steps = False
 
         tableau_pieces = [[None for i in range(8)] for i in range(8)]
         for element in pieces_noires:

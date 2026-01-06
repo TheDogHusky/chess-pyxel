@@ -1,14 +1,14 @@
 import src.app
 import src.piece
 
-def get_total_possible_moves(app: src.app.App, color: str) -> list[tuple[int, int]]:
+def get_total_possible_moves(app: src.app.App, color: str, ignore: list[str] = []) -> list[tuple[int, int]]:
     """Retourne une liste de tous les coups possibles pour un joueur donné (color)."""
 
     total_moves = []
     pieces = app.pieces_white if color == "white" else app.pieces_black
 
     for piece in pieces:
-        if piece.alive:
+        if piece.alive and piece.type not in ignore:
             total_moves.extend(piece.possible_moves)
     
     return total_moves
@@ -51,6 +51,18 @@ def sort_by_type(pieces: list[src.piece.Piece]) -> tuple[dict[str, int], dict[st
     
     return (val, val_white)
 
+def get_total_alive_pieces(app: src.app.App, color: str) -> int:
+    """Retourne le nombre total de pièces vivantes pour un joueur donné (color)."""
+
+    pieces = app.pieces_white if color == "white" else app.pieces_black
+    total = 0
+
+    for piece in pieces:
+        if piece.alive:
+            total += 1
+    
+    return total
+
 def get_ui_texture_coordinates(piece: src.piece.Piece) -> tuple[int, int]:
     """Retourne les coordonnées (sx, sy) de la texture de la pièce dans le fichier pyxres."""
 
@@ -82,7 +94,7 @@ def get_ui_texture_coordinates(piece: src.piece.Piece) -> tuple[int, int]:
 
     return (sx, sy)
 
-def get_dead_coordinates(color, type):
+def get_dead_coordinates(color: str, type: str) -> tuple[int, int]:
     """Retourne les coordonnées (x, y) où dessiner les pièces mortes de type 'type' et couleur 'color'."""
 
     coords_white = {
@@ -104,3 +116,13 @@ def get_dead_coordinates(color, type):
     }
 
     return coords_black[type] if color == "black" else coords_white[type]
+
+def filter_type(pieces: list[src.piece.Piece], type: str) -> list[src.piece.Piece]:
+    """Retourne une liste de pièces filtrée par type."""
+
+    filtered = []
+    for piece in pieces:
+        if piece.type == type:
+            filtered.append(piece)
+    
+    return filtered

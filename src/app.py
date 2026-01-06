@@ -32,6 +32,7 @@ class App:
         self.selected_piece = None # quelle pièce est sélectionnée ?
         self.waiting_promotion = None # Instance de Piece
         self.finished = [False, None] # indique si la partie est terminée
+        self.turns_played = 0 # nombre de tours joués
 
         # Pour ces propriétés ci dessous, on a choisi cette façon de faire car les règles de jeu on deux dimensions:
         # Une dimension de détection, donc dans on sélectionne une pièce, montrer ce qui est possible.
@@ -86,7 +87,7 @@ class App:
         self.pieces_white.append(Piece("king", (4, 0)))
 
         for piece in self.pieces_black + self.pieces_white:
-            piece.update(self.pieces_black, self.pieces_white) # mise à jour initiale des coups possibles
+            piece.update(self.turns_played, self.pieces_black, self.pieces_white) # mise à jour initiale des coups possibles
 
     def draw(self):
         """Dessine l'interface utilisateur à chaque frame."""
@@ -152,6 +153,7 @@ class App:
         self.player_turn = 0
         self.pieces_black = []
         self.pieces_white = []
+        self.turns_played = 0
         self.init_game()
         self.selected_piece = None
         self.waiting_promotion = None
@@ -233,13 +235,14 @@ class App:
             selected = find_piece_at(self, self.selected_piece[0], self.selected_piece[1])
             castling_move(self) # on check si on doit faire un roque
             if self.en_passant_possible["white"] or self.en_passant_possible["black"]:
-                en_passant_move(self, selected) # on check si on doit faire une prise en passant
-                return
+                done = en_passant_move(self, selected) # on check si on doit faire une prise en passant
+                if done:
+                    return
             
             if selected and [x, y] in selected.possible_moves: # vérifie si la pièce peut aller à cet endroit
                 opponent = piece # on stocke la pièce adverse (si y'en a une)
                 piece = selected # on récupère la pièce sélectionnée
-                piece.bouger(x,y) # on déplace la pièce
+                piece.bouger(self.turns_played, x, y) # on déplace la pièce
 
                 if opponent and opponent.alive and opponent.color != piece.color:
                     opponent.alive = False
@@ -252,17 +255,18 @@ class App:
         """Passe au tour suivant en mettant à jour les pièces et en gérant la promotion des pions."""
         pieces_total = self.pieces_black + self.pieces_white
         for piece_to_update in pieces_total:
-            piece_to_update.update(self.pieces_black, self.pieces_white)
+            piece_to_update.update(self.turns_played, self.pieces_black, self.pieces_white)
         self.selected_piece = None # on désélectionne la pièce
         promotion(self) # on check si on doit promouvoir un pion
         self.player_turn = 1 - self.player_turn # on change de joueur
-        check_checkmate(self) # on check si le joueur adverse est en échec et mat
+        self.turns_played += 1
+        check_checkmate(self) # on check si le joueur adverse est en échec et math
 
     def draw_board(self):
         """Dessine le plateau de jeu avec les cases et les surlignages."""
         for x in range(8):
             for y in range(8): # plateau en 8*8 cases
-                if (x + y) % 2 == 0: # une case sur deux, on change la couleur (faut que le plateau soit beau)
+                if (x + y) % 2 == 1: # une case sur deux, on change la couleur (faut que le plateau soit beau)
                     pyxel.rect(x * 16 + 48, y * 16 + 32, 16, 16, pyxel.COLOR_PEACH)
                 else:
                     pyxel.rect(x * 16 + 48, y * 16 + 32, 16, 16, pyxel.COLOR_BROWN)
@@ -270,13 +274,13 @@ class App:
         # on gère le fait de surligner la pièce sélectionnée et les coups possibles
         if self.selected_piece:
             x, y = self.selected_piece[0], self.selected_piece[1]
-            pyxel.rectb(x * 16 + 48, y * 16 + 32, 16, 16, pyxel.COLOR_DARK_BLUE) # case de pièce sélectionnée
             # utilisation de piece.possible_moves pour afficher les coups possibles
             selected = find_piece_at(self, x, y)
             if selected:
                 for move in selected.possible_moves: # pour chaque coup possible, on met en valeur
                     mx, my = move
                     pyxel.rectb(mx * 16 + 48, my * 16 + 32, 16, 16, pyxel.COLOR_LIGHT_BLUE)
+            pyxel.rectb(x * 16 + 48, y * 16 + 32, 16, 16, pyxel.COLOR_DARK_BLUE) # case de pièce sélectionnée
 
     def draw_pieces(self):
         """Dessine toutes les pièces vivantes sur le plateau de jeu."""

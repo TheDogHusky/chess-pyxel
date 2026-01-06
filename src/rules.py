@@ -39,27 +39,27 @@ def castling_move(app: src.app.App) -> None:
         king = src.utils.find_piece_at(app, 4, 0)
         if (2, 0) in king.possible_moves: # roque côté dame
             rook = src.utils.find_piece_at(app, 0, 0)
-            rook.bouger(3, 0)
-            king.bouger(2, 0)
+            rook.bouger(app.turns_played, 3, 0)
+            king.bouger(app.turns_played, 2, 0)
             app.castling_possible["white"] = False # on reset la possibilité de roque pour les blancs
             app.next_turn()
         else: # roque côté roi
             rook = src.utils.find_piece_at(app, 7, 0)
-            rook.bouger(5, 0)
-            king.bouger(6, 0)
+            rook.bouger(app.turns_played, 5, 0)
+            king.bouger(app.turns_played, 6, 0)
             app.next_turn()
         app.castling_possible["white"] = False # on reset la possibilité de roque pour les blancs
     elif app.castling_possible["black"] and app.player_turn == 1:
         king = src.utils.find_piece_at(app, 4, 7)
         if (2, 7) in king.possible_moves: # roque côté dame
             rook = src.utils.find_piece_at(app, 0, 7)
-            rook.bouger(3, 7)
-            king.bouger(2, 7)
+            rook.bouger(app.turns_played, 3, 7)
+            king.bouger(app.turns_played, 2, 7)
             app.next_turn()
         else: # roque côté roi
             rook = src.utils.find_piece_at(app, 7, 7)
-            rook.bouger(5, 7)
-            king.bouger(6, 7)
+            rook.bouger(app.turns_played, 5, 7)
+            king.bouger(app.turns_played, 6, 7)
             app.next_turn()
         app.castling_possible["black"] = False # on reset la possibilité de roque pour les noirs
 
@@ -102,20 +102,25 @@ def castling(app: src.app.App) -> None:
 def en_passant_move(app: src.app.App, selected: src.piece.Piece) -> None:
     """Effectue une prise en passant aux échecs quand le joueur le demande."""
     if app.en_passant_possible["white"] and app.player_turn == 0: # prise en passant pour les blancs
-        pawn = src.utils.find_piece_at(app, app.en_passant_possible["white"].x, app.en_passant_possible["white"].y)
-        if pawn and pawn.type == "pawn":
-            selected.bouger(pawn.x, pawn.y + 1)
-            app.en_passant_possible["white"] = None
-            pawn.alive = False
-            app.next_turn()
-    elif app.en_passant_possible["black"]: # prise en passant pour les noirs
+        pawn = src.utils.find_piece_at(app, app.en_passant_possible["white"].x, app.en_passant_possible["white"].y) # on cherche la pièce ennemie
+        if pawn.initial_2steps == True: # on vérifie que le pion adverse vient de faire un déplacement de 2 cases
+            if pawn and pawn.type == "pawn" and selected.type == "pawn": # on vérifie que les deux pièces sont des pions
+                selected.bouger(app.turns_played, pawn.x, pawn.y + 1) # on déplace le pion sélectionné en diagonale derrière le pion adverse
+                app.en_passant_possible["white"] = None
+                pawn.alive = False
+                app.next_turn()
+                return True
+    elif app.en_passant_possible["black"] and app.player_turn == 1: # prise en passant pour les noirs
         pawn = src.utils.find_piece_at(app, app.en_passant_possible["black"].x, app.en_passant_possible["black"].y)
-        if pawn and pawn.type == "pawn":
-            print("found pawn")
-            selected.bouger(pawn.x, pawn.y - 1)
-            pawn.alive = False
-            app.en_passant_possible["black"] = None
-            app.next_turn()
+        if pawn.initial_2steps == True:
+            if pawn and pawn.type == "pawn" and selected.type == "pawn":
+                selected.bouger(app.turns_played, pawn.x, pawn.y - 1)
+                pawn.alive = False
+                app.en_passant_possible["black"] = None
+                app.next_turn()
+                return True
+    else:
+        return False
 
 def en_passant(app: src.app.App) -> None:
     """
@@ -140,16 +145,16 @@ def en_passant(app: src.app.App) -> None:
                     enemy_x = piece.x + dx
                     enemy_y = piece.y
                     enemy_piece = src.utils.find_piece_at(app, enemy_x, enemy_y) # on cherche la pièce ennemie
-                    
                     # Vérifier s'il y a un pion noir adjacent
                     if enemy_piece and enemy_piece.type == "pawn" and enemy_piece.color == "black":
                         # Ajouter la prise en passant comme coup possible
                         en_passant_move = (enemy_x, enemy_y + 1)
-                        if en_passant_move not in piece.possible_moves:
+                        if en_passant_move not in piece.possible_moves and enemy_piece.initial_2steps:
                             piece.possible_moves.append(en_passant_move)
-                        app.en_passant_possible["white"] = enemy_piece # Stocker le pion noir pouvant être capturé en passant
+                            app.en_passant_possible["white"] = enemy_piece # Stocker le pion noir pouvant être capturé en passan
+        return
 
-    else:  # Prise en passant pour les noirs
+    else: # Prise en passant pour les noirs
         for piece in app.pieces_black:
             if piece.type == "pawn" and piece.alive:
                 # Vérifier les cases à gauche et à droite du pion noir
@@ -157,41 +162,42 @@ def en_passant(app: src.app.App) -> None:
                     enemy_x = piece.x + dx
                     enemy_y = piece.y
                     enemy_piece = src.utils.find_piece_at(app, enemy_x, enemy_y)
-                    
                     # Vérifier s'il y a un pion blanc adjacent
                     if enemy_piece and enemy_piece.type == "pawn" and enemy_piece.color == "white":
                         # Ajouter la prise en passant comme coup possible
                         en_passant_move = (enemy_x, enemy_y - 1)
-                        if en_passant_move not in piece.possible_moves:
+                        if en_passant_move not in piece.possible_moves and enemy_piece.initial_2steps == True:
                             piece.possible_moves.append(en_passant_move)
-                        app.en_passant_possible["black"] = enemy_piece # Stocker le pion noir pouvant être capturé en passant
+                            app.en_passant_possible["black"] = enemy_piece # Stocker le pion noir pouvant être capturé en passant
+        return
 
 def check_checkmate(app: src.app.App) -> None:
     """Vérifie si un joueur est en échec et mat."""
     if app.player_turn == 0:
         # comparer les coups possibles des noirs avec les coups possibles du roi blanc
-        # Rechercher le roi blanc
-        king = next((p for p in app.pieces_white if p.type == "king" and p.alive), None)
-        print(king)
-        if not king:
-            # TODO si pas de roi trouvé, fin de la partie
-            app.end_game("black")
+        king = next((p for p in app.pieces_white if p.type == "king" and p.alive), None) # Rechercher le roi blanc
+        if not king: # si le roi blanc n'existe pas (a été mangé)
+            app.end_game("black") # le joueur noir gagne
             return
-        # Rassembler tous les coups possibles des noirs
-        black_moves = src.utils.get_total_possible_moves(app, "black")
-        white_moves = src.utils.get_total_possible_moves(app, "white")
-        white_blocked_moves = []
+        black_moves = src.utils.get_total_possible_moves(app, "black", ["pawn"]) # Rassembler tous les coups possibles des noirs sauf les pions
+        black_moves.extend([ [p.x + dx, p.y - 1] for p in src.utils.filter_type(app.pieces_black, "pawn") if p.alive for dx in [-1, 1] ]) # ajouter les attaques des pions blancs | filter_type -> liste des pions vivants
+        white_moves = src.utils.get_total_possible_moves(app, "white", []) # Rassembler tous les coups possibles des blancs
+        if src.utils.get_total_alive_pieces(app, "white"):
+            white_moves.append([king.x, king.y]) # on ajoute la position actuelle du roi blanc aux coups possibles des noirs (utile pour vérifier l'échec et mat)
+            king.possible_moves.append((king.x, king.y)) # on ajoute la position actuelle du roi blanc aux coups possibles du roi afin que la partie ne se termine pas si des pions peuvent le sauver
+        white_blocked_moves = [] # liste des coups blancs qui bloquent les coups noirs
         if king.possible_moves:
-            print("avant check:", king.possible_moves)
-            for move in king.possible_moves:
-                if move in black_moves:
-                    king.possible_moves.remove(move) 
-            # if not king.possible_moves:
-            #     # échec et mat
-            #     app.end_game("black")
-            #     return
+            to_remove = []
+            for move in king.possible_moves: # on vérifie chaque coup possible du roi
+                if move in black_moves: # si le coup est dans les coups possibles des noirs, on le retire
+                    to_remove.append(move)
+            for move in to_remove:
+                king.possible_moves.remove(move)
+            if not len(king.possible_moves): # le roi blanc n'a plus de coup possible
+                # échec et mat
+                app.end_game("black")
+                return
         if (king.x, king.y) in black_moves: # le roi blanc est en échec
-            print("Le roi blanc est en échec.")
             if white_moves: # il y a des coups possibles pour les blancs
                 for move in white_moves: # on vérifie si un coup blanc peut contrer un coup noir
                     if move in black_moves: # un coup noir est contré
@@ -200,9 +206,36 @@ def check_checkmate(app: src.app.App) -> None:
                     # échec et mat
                     app.end_game("black")
                     return
-        # TODO ajouter que si les coups possibles des blancs peuvent manger le roi noir dès le début du tour alors échec et mat et parie gagné pour les blancs
-        # 
-
     else:
-        # vérifier si le roi noir est en échec et mat
-        pass
+        # comparer les coups possibles des blancs avec les coups possibles du roi noir
+        king = next((p for p in app.pieces_black if p.type == "king" and p.alive), None) # Rechercher le roi noir
+        if not king: # si le roi noir n'existe pas (a été mangé)
+            app.end_game("white") # le joueur blanc gagne
+            return
+        black_moves = src.utils.get_total_possible_moves(app, "black", []) # Rassembler tous les coups possibles des noirs
+        white_moves = src.utils.get_total_possible_moves(app, "white", ["pawn"]) # Rassembler tous les coups possibles des blancs sauf les pions
+        white_moves.extend([ [p.x + dx, p.y + 1] for p in src.utils.filter_type(app.pieces_white, "pawn") if p.alive for dx in [-1, 1] ]) # ajouter les attaques des pions blancs | filter_type -> liste des pions vivants
+        if src.utils.get_total_alive_pieces(app, "black"):
+            black_moves.append([king.x, king.y]) # on ajoute la position actuelle du roi noir aux coups possibles des blancs (utile pour vérifier l'échec et mat)
+            king.possible_moves.append((king.x, king.y)) # on ajoute la position actuelle du roi blanc aux coups possibles du roi afin que la partie ne se termine pas si des pions peuvent le sauver
+        black_blocked_moves = [] # liste des coups noirs qui bloquant les coups blancs
+        if king.possible_moves:
+            to_remove = []
+            for move in king.possible_moves:
+                if move in white_moves:
+                    to_remove.append(move)
+            for move in to_remove:
+                king.possible_moves.remove(move)
+            if not len(king.possible_moves): # le roi noir n'a plus de coup possible
+                # échec et mat
+                app.end_game("white")
+                return
+        if (king.x, king.y) in white_moves: # le roi noir est en échec
+            if white_moves: # il y a des coups possibles pour les blancs
+                for move in white_moves: # on vérifie si un coup blanc peut contrer un coup noir
+                    if move in white_moves: # un coup blanc est contré
+                        black_blocked_moves.append(move)
+                if len(black_blocked_moves) == len(white_moves): # si aucun coup blanc n'est contré
+                    # échec et mat
+                    app.end_game("white")
+                    return
