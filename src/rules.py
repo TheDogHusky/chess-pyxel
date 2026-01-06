@@ -200,9 +200,9 @@ def check_checkmate(app: src.app.App) -> None:
                     # échec et mat
                     app.end_game("black")
                     return
+        # TODO corriger la détezction de coup noir bloqué par un coup blanc
         # TODO ajouter que si les coups possibles des blancs peuvent manger le roi noir dès le début du tour alors échec et mat et parie gagné pour les blancs
-        # 
 
     else:
-        # vérifier si le roi noir est en échec et mat
+        # TODO implémenter la vérification pour les noirs
         pass
